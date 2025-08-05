@@ -4,9 +4,93 @@ import numpy as np
 import pandas as pd
 from scipy.optimize import minimize
 import warnings
+import re
+import requests
+from datetime import datetime, timedelta
+from prophet import Prophet
 warnings.filterwarnings('ignore')
 
 optimize_bp = Blueprint('optimize', __name__)
+
+# Stock ticker validation
+def validate_ticker(ticker):
+    """Validate if ticker is a valid stock symbol format"""
+    if not ticker or not isinstance(ticker, str):
+        return False
+    
+    # Basic format validation (1-5 alphanumeric characters)
+    if not re.match(r'^[A-Z]{1,5}$', ticker.upper()):
+        return False
+        
+    return True
+
+def validate_tickers_exist(tickers, timeout=10):
+    """Validate that tickers exist by attempting to fetch basic info"""
+    valid_tickers = []
+    invalid_tickers = []
+    
+    for ticker in tickers:
+        try:
+            # Quick validation using yfinance info
+            stock = yf.Ticker(ticker)
+            # Try to get basic info with timeout
+            info = stock.info
+            if info and 'symbol' in info:
+                valid_tickers.append(ticker)
+            else:
+                invalid_tickers.append(ticker)
+        except Exception:
+            invalid_tickers.append(ticker)
+    
+    return valid_tickers, invalid_tickers
+
+def forecast_portfolio_growth(portfolio_growth_dict, periods=90):
+    """Forecast portfolio growth using Prophet"""
+    try:
+        if not portfolio_growth_dict or len(portfolio_growth_dict) < 10:
+            raise ValueError("Insufficient historical data for forecasting")
+        
+        # Prepare data for Prophet
+        df = pd.DataFrame([
+            {'ds': pd.to_datetime(date), 'y': value}
+            for date, value in portfolio_growth_dict.items()
+        ])
+        
+        # Sort by date
+        df = df.sort_values('ds').reset_index(drop=True)
+        
+        # Initialize and fit Prophet model
+        model = Prophet(
+            daily_seasonality=False,
+            weekly_seasonality=False,
+            yearly_seasonality=True,
+            changepoint_prior_scale=0.05,
+            interval_width=0.8
+        )
+        
+        model.fit(df)
+        
+        # Create future dataframe
+        future = model.make_future_dataframe(periods=periods)
+        forecast = model.predict(future)
+        
+        # Extract forecast data (only future periods)
+        future_forecast = forecast.tail(periods)
+        
+        # Format forecast results
+        forecast_dict = {}
+        for _, row in future_forecast.iterrows():
+            date_str = row['ds'].strftime('%Y-%m-%d')
+            forecast_dict[date_str] = {
+                'value': float(row['yhat']),
+                'lower': float(row['yhat_lower']),
+                'upper': float(row['yhat_upper'])
+            }
+        
+        return forecast_dict
+        
+    except Exception as e:
+        raise Exception(f"Forecasting failed: {str(e)}")
 
 class PortfolioOptimizer:
     def __init__(self, returns, risk_free_rate=0.02):
@@ -33,37 +117,51 @@ class PortfolioOptimizer:
     
     def optimize_max_sharpe(self):
         """Find portfolio with maximum Sharpe ratio"""
-        constraints = {'type': 'eq', 'fun': lambda x: np.sum(x) - 1}
-        bounds = tuple((0, 1) for _ in range(self.n_assets))
-        initial_guess = np.array([1/self.n_assets] * self.n_assets)
-        
-        result = minimize(
-            self.negative_sharpe,
-            initial_guess,
-            method='SLSQP',
-            bounds=bounds,
-            constraints=constraints,
-            options={'maxiter': 1000}
-        )
-        
-        return result.x if result.success else None
+        try:
+            constraints = {'type': 'eq', 'fun': lambda x: np.sum(x) - 1}
+            bounds = tuple((0, 1) for _ in range(self.n_assets))
+            initial_guess = np.array([1/self.n_assets] * self.n_assets)
+            
+            result = minimize(
+                self.negative_sharpe,
+                initial_guess,
+                method='SLSQP',
+                bounds=bounds,
+                constraints=constraints,
+                options={'maxiter': 1000}
+            )
+            
+            if not result.success:
+                raise Exception(f"Optimization failed: {result.message}")
+                
+            return result.x
+            
+        except Exception as e:
+            raise Exception(f"Max Sharpe optimization failed: {str(e)}")
     
     def optimize_min_volatility(self):
         """Find minimum volatility portfolio"""
-        constraints = {'type': 'eq', 'fun': lambda x: np.sum(x) - 1}
-        bounds = tuple((0, 1) for _ in range(self.n_assets))
-        initial_guess = np.array([1/self.n_assets] * self.n_assets)
-        
-        result = minimize(
-            self.portfolio_volatility,
-            initial_guess,
-            method='SLSQP',
-            bounds=bounds,
-            constraints=constraints,
-            options={'maxiter': 1000}
-        )
-        
-        return result.x if result.success else None
+        try:
+            constraints = {'type': 'eq', 'fun': lambda x: np.sum(x) - 1}
+            bounds = tuple((0, 1) for _ in range(self.n_assets))
+            initial_guess = np.array([1/self.n_assets] * self.n_assets)
+            
+            result = minimize(
+                self.portfolio_volatility,
+                initial_guess,
+                method='SLSQP',
+                bounds=bounds,
+                constraints=constraints,
+                options={'maxiter': 1000}
+            )
+            
+            if not result.success:
+                raise Exception(f"Optimization failed: {result.message}")
+                
+            return result.x
+            
+        except Exception as e:
+            raise Exception(f"Min volatility optimization failed: {str(e)}")
     
     def optimize_target_return(self, target_return):
         """Find minimum volatility portfolio for a target return"""
@@ -101,26 +199,37 @@ class PortfolioOptimizer:
     
     def risk_parity_portfolio(self):
         """Risk parity portfolio (equal risk contribution)"""
-        def risk_budget_objective(weights):
-            portfolio_vol = np.sqrt(np.dot(weights.T, np.dot(self.cov_matrix, weights)))
-            marginal_contrib = np.dot(self.cov_matrix, weights) / portfolio_vol
-            contrib = weights * marginal_contrib
-            return np.sum((contrib - contrib.mean()) ** 2)
-        
-        constraints = {'type': 'eq', 'fun': lambda x: np.sum(x) - 1}
-        bounds = tuple((0.001, 1) for _ in range(self.n_assets))  # Small minimum to avoid division by zero
-        initial_guess = np.array([1/self.n_assets] * self.n_assets)
-        
-        result = minimize(
-            risk_budget_objective,
-            initial_guess,
-            method='SLSQP',
-            bounds=bounds,
-            constraints=constraints,
-            options={'maxiter': 1000}
-        )
-        
-        return result.x if result.success else self.equal_weight_portfolio()
+        try:
+            def risk_budget_objective(weights):
+                portfolio_vol = np.sqrt(np.dot(weights.T, np.dot(self.cov_matrix, weights)))
+                if portfolio_vol == 0:
+                    return 1e10  # Large penalty for zero volatility
+                marginal_contrib = np.dot(self.cov_matrix, weights) / portfolio_vol
+                contrib = weights * marginal_contrib
+                return np.sum((contrib - contrib.mean()) ** 2)
+            
+            constraints = {'type': 'eq', 'fun': lambda x: np.sum(x) - 1}
+            bounds = tuple((0.001, 1) for _ in range(self.n_assets))  # Small minimum to avoid division by zero
+            initial_guess = np.array([1/self.n_assets] * self.n_assets)
+            
+            result = minimize(
+                risk_budget_objective,
+                initial_guess,
+                method='SLSQP',
+                bounds=bounds,
+                constraints=constraints,
+                options={'maxiter': 1000}
+            )
+            
+            if not result.success:
+                print(f"Risk parity optimization failed: {result.message}, falling back to equal weight")
+                return self.equal_weight_portfolio()
+                
+            return result.x
+            
+        except Exception as e:
+            print(f"Risk parity optimization error: {str(e)}, falling back to equal weight")
+            return self.equal_weight_portfolio()
     
     def efficient_frontier(self, num_portfolios=100):
         """Generate efficient frontier"""
@@ -147,22 +256,96 @@ class PortfolioOptimizer:
 
 @optimize_bp.route("/optimize", methods=["POST"])
 def optimize_portfolio():
-    data = request.get_json()
-    tickers = data.get("tickers", [])
-    start = data.get("start")
-    end = data.get("end")
-    strategy = data.get("strategy", "max_sharpe")  # max_sharpe, min_volatility, equal_weight, risk_parity, target_return
-    target_return = data.get("target_return", 0.1)  # For target_return strategy
-    risk_free_rate = data.get("risk_free_rate", 0.02)  # Default 2%
-    include_efficient_frontier = data.get("include_efficient_frontier", False)
-    include_portfolio_growth = data.get("include_portfolio_growth", True)  # New parameter
-
-    if not tickers or not start or not end:
-        return jsonify({"error": "Missing tickers, start, or end date"}), 400
-
     try:
-        # Download stock data
-        raw_data = yf.download(tickers, start=start, end=end, auto_adjust=True)
+        data = request.get_json()
+        if not data:
+            return jsonify({"error": "No JSON data provided"}), 400
+            
+        tickers = data.get("tickers", [])
+        start = data.get("start")
+        end = data.get("end")
+        strategy = data.get("strategy", "max_sharpe")
+        target_return = data.get("target_return", 0.1)
+        risk_free_rate = data.get("risk_free_rate", 0.02)
+        include_efficient_frontier = data.get("include_efficient_frontier", False)
+        include_portfolio_growth = data.get("include_portfolio_growth", True)
+
+        # Input validation
+        if not tickers or not start or not end:
+            return jsonify({"error": "Missing required fields: tickers, start, or end date"}), 400
+            
+        if not isinstance(tickers, list) or len(tickers) == 0:
+            return jsonify({"error": "Tickers must be a non-empty list"}), 400
+            
+        if len(tickers) > 20:
+            return jsonify({"error": "Too many tickers (maximum 20 allowed)"}), 400
+            
+        # Validate ticker formats
+        invalid_format_tickers = []
+        for ticker in tickers:
+            if not validate_ticker(ticker):
+                invalid_format_tickers.append(ticker)
+                
+        if invalid_format_tickers:
+            return jsonify({
+                "error": f"Invalid ticker format: {', '.join(invalid_format_tickers)}",
+                "details": "Tickers must be 1-5 uppercase letters"
+            }), 400
+            
+        # Validate dates
+        try:
+            start_date = datetime.strptime(start, '%Y-%m-%d')
+            end_date = datetime.strptime(end, '%Y-%m-%d')
+            
+            if start_date >= end_date:
+                return jsonify({"error": "Start date must be before end date"}), 400
+                
+            if end_date > datetime.now():
+                return jsonify({"error": "End date cannot be in the future"}), 400
+                
+            if (end_date - start_date).days < 30:
+                return jsonify({"error": "Date range must be at least 30 days"}), 400
+                
+        except ValueError:
+            return jsonify({"error": "Invalid date format. Use YYYY-MM-DD"}), 400
+            
+        # Validate strategy
+        valid_strategies = ['max_sharpe', 'min_volatility', 'equal_weight', 'risk_parity', 'target_return']
+        if strategy not in valid_strategies:
+            return jsonify({"error": f"Invalid strategy. Must be one of: {', '.join(valid_strategies)}"}), 400
+            
+        # Validate target return if needed
+        if strategy == 'target_return':
+            if not isinstance(target_return, (int, float)) or target_return <= 0:
+                return jsonify({"error": "Target return must be a positive number"}), 400
+                
+        # Validate tickers exist (with timeout)
+        print(f"Validating tickers: {tickers}")
+        valid_tickers, invalid_tickers = validate_tickers_exist(tickers, timeout=10)
+        
+        if invalid_tickers:
+            return jsonify({
+                "error": f"Invalid tickers: {', '.join(invalid_tickers)}",
+                "details": "These tickers do not exist or cannot be accessed",
+                "valid_tickers": valid_tickers
+            }), 400
+            
+        tickers = valid_tickers  # Use only valid tickers
+
+        # Download stock data with timeout handling
+        print(f"Downloading data for {len(tickers)} tickers from {start} to {end}")
+        try:
+            # Set timeout for yfinance download (note: yfinance doesn't directly support timeout)
+            raw_data = yf.download(tickers, start=start, end=end, auto_adjust=True, progress=False)
+            
+            if raw_data.empty:
+                return jsonify({"error": "No data available for the specified tickers and date range"}), 400
+                
+        except Exception as download_error:
+            return jsonify({
+                "error": "Failed to download stock data",
+                "details": str(download_error)
+            }), 500
         
         # Handle different data structures based on number of tickers
         if len(tickers) == 1:
@@ -219,47 +402,43 @@ def optimize_portfolio():
         # Initialize optimizer
         optimizer = PortfolioOptimizer(returns, risk_free_rate)
 
-        # Optimize based on strategy
-        if strategy == "max_sharpe":
-            weights = optimizer.optimize_max_sharpe()
-            description = "Maximum Sharpe Ratio Portfolio"
-            error_msg = "Failed to find maximum Sharpe ratio portfolio"
-        elif strategy == "min_volatility":
-            weights = optimizer.optimize_min_volatility()
-            description = "Minimum Volatility Portfolio"
-            error_msg = "Failed to find minimum volatility portfolio"
-        elif strategy == "equal_weight":
-            weights = optimizer.equal_weight_portfolio()
-            description = "Equal Weight Portfolio"
-            error_msg = None  # This shouldn't fail
-        elif strategy == "risk_parity":
-            weights = optimizer.risk_parity_portfolio()
-            description = "Risk Parity Portfolio"
-            error_msg = "Failed to find risk parity portfolio"
-        elif strategy == "target_return":
-            weights, error_msg = optimizer.optimize_target_return(target_return)
-            description = f"Minimum Volatility Portfolio for {target_return:.1%} Target Return"
-        else:
-            return jsonify({"error": f"Unknown strategy: {strategy}"}), 400
-
+        # Optimize based on strategy with proper error handling
+        try:
+            if strategy == "max_sharpe":
+                weights = optimizer.optimize_max_sharpe()
+                description = "Maximum Sharpe Ratio Portfolio"
+            elif strategy == "min_volatility":
+                weights = optimizer.optimize_min_volatility()
+                description = "Minimum Volatility Portfolio"
+            elif strategy == "equal_weight":
+                weights = optimizer.equal_weight_portfolio()
+                description = "Equal Weight Portfolio"
+            elif strategy == "risk_parity":
+                weights = optimizer.risk_parity_portfolio()
+                description = "Risk Parity Portfolio"
+            elif strategy == "target_return":
+                weights, error_msg = optimizer.optimize_target_return(target_return)
+                description = f"Minimum Volatility Portfolio for {target_return:.1%} Target Return"
+                if weights is None:
+                    return jsonify({
+                        "error": error_msg,
+                        "suggestion": f"Try a target return between {optimizer.mean_returns.min():.1%} and {optimizer.mean_returns.max():.1%}"
+                    }), 400
+            else:
+                return jsonify({"error": f"Unknown strategy: {strategy}"}), 400
+                
+        except Exception as opt_error:
+            return jsonify({
+                "error": "Portfolio optimization failed",
+                "details": str(opt_error),
+                "suggestion": "Try a different optimization strategy or check your data"
+            }), 500
+            
         if weights is None:
-            # Provide more detailed error information
-            portfolio_stats = {
-                "min_return": float(optimizer.mean_returns.min()),
-                "max_return": float(optimizer.mean_returns.max()),
-                "equal_weight_return": float(np.sum(optimizer.mean_returns * optimizer.equal_weight_portfolio())),
-                "individual_returns": dict(zip(df.columns.tolist(), optimizer.mean_returns.round(4).tolist()))
-            }
-            
-            error_response = {
-                "error": error_msg or "Optimization failed",
-                "portfolio_stats": portfolio_stats
-            }
-            
-            if strategy == "target_return":
-                error_response["suggestion"] = f"Try a target return between {optimizer.mean_returns.min():.1%} and {optimizer.mean_returns.max():.1%}"
-            
-            return jsonify(error_response), 400
+            return jsonify({
+                "error": "Optimization failed to converge",
+                "suggestion": "Try a different strategy or adjust parameters"
+            }), 500
 
         # Calculate portfolio performance
         portfolio_return, portfolio_volatility, sharpe_ratio = optimizer.portfolio_performance(weights)
@@ -295,11 +474,17 @@ def optimize_portfolio():
                 
                 response["portfolio_growth"] = portfolio_growth_dict
                 
+                # Add forecasting with better error handling
                 try:
-                    forecasted_growth = forecast_portfolio_growth(portfolio_growth_dict, periods=90)
-                    response["forecasted_growth"] = forecasted_growth
+                    if len(portfolio_growth_dict) >= 30:  # Need sufficient data
+                        forecasted_growth = forecast_portfolio_growth(portfolio_growth_dict, periods=90)
+                        response["forecasted_growth"] = forecasted_growth
+                        print(f"Forecast generated successfully for {len(forecasted_growth)} periods")
+                    else:
+                        response["forecast_warning"] = "Insufficient data for forecasting (minimum 30 data points required)"
                 except Exception as e:
-                    response["forecast_error"] = str(e)
+                    print(f"Forecasting error: {str(e)}")
+                    response["forecast_error"] = f"Forecasting failed: {str(e)}"
 
                 # Add individual asset growth for comparison
                 individual_growth = {}
@@ -333,23 +518,50 @@ def optimize_portfolio():
 
     except Exception as e:
         import traceback
-        print(f"Error: {str(e)}")
+        error_msg = str(e)
+        print(f"Unexpected error in optimize_portfolio: {error_msg}")
         print(f"Traceback: {traceback.format_exc()}")
-        return jsonify({"error": str(e)}), 500
+        
+        # Return more helpful error messages
+        if "timeout" in error_msg.lower():
+            return jsonify({
+                "error": "Request timed out",
+                "details": "The optimization took too long. Try with fewer tickers or a shorter date range."
+            }), 408
+        elif "memory" in error_msg.lower():
+            return jsonify({
+                "error": "Insufficient memory",
+                "details": "Try with fewer tickers or a shorter date range."
+            }), 507
+        else:
+            return jsonify({
+                "error": "Internal server error",
+                "details": error_msg
+            }), 500
 
 @optimize_bp.route("/portfolio-info", methods=["POST"])
 def get_portfolio_info():
     """Get portfolio statistics and feasible return range"""
-    data = request.get_json()
-    tickers = data.get("tickers", [])
-    start = data.get("start")
-    end = data.get("end")
-    risk_free_rate = data.get("risk_free_rate", 0.02)
-
-    if not tickers or not start or not end:
-        return jsonify({"error": "Missing tickers, start, or end date"}), 400
-
     try:
+        data = request.get_json()
+        if not data:
+            return jsonify({"error": "No JSON data provided"}), 400
+            
+        tickers = data.get("tickers", [])
+        start = data.get("start")
+        end = data.get("end")
+        risk_free_rate = data.get("risk_free_rate", 0.02)
+
+        # Basic validation
+        if not tickers or not start or not end:
+            return jsonify({"error": "Missing required fields: tickers, start, or end date"}), 400
+            
+        # Validate ticker formats
+        invalid_tickers = [ticker for ticker in tickers if not validate_ticker(ticker)]
+        if invalid_tickers:
+            return jsonify({
+                "error": f"Invalid ticker format: {', '.join(invalid_tickers)}"
+            }), 400
         # Download and process data (same logic as optimize endpoint)
         raw_data = yf.download(tickers, start=start, end=end, auto_adjust=True)
         

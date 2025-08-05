@@ -3,6 +3,8 @@
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
+import { Alert, AlertDescription } from "@/components/ui/alert";
+import { AlertCircle, RefreshCw } from "lucide-react";
 import axios from "axios";
 import { ArcElement, BubbleController, Chart, Legend, LinearScale, PointElement, Tooltip } from "chart.js";
 import { useState } from "react";
@@ -16,9 +18,11 @@ export default function CurrentPortfolioAnalyzer() {
   const [dateRange, setDateRange] = useState({ start: "2023-01-01", end: "2024-01-01" });
   const [result, setResult] = useState<any>(null);
   const [loading, setLoading] = useState(false);
+  const [error, setError] = useState<string | null>(null);
 
   const handleAnalyze = async () => {
     setLoading(true);
+    setError(null);
     try {
       const res = await axios.post("http://localhost:5000/api/portfolio/analyze", {
         tickers,
@@ -27,9 +31,9 @@ export default function CurrentPortfolioAnalyzer() {
         end: dateRange.end,
       });
       setResult(res.data);
-    } catch (err) {
+    } catch (err: any) {
       console.error(err);
-      alert("Failed to analyze portfolio");
+      setError(err.response?.data?.message || err.message || "Failed to analyze portfolio");
     } finally {
       setLoading(false);
     }
@@ -85,9 +89,33 @@ export default function CurrentPortfolioAnalyzer() {
             onChange={(e) => setDateRange((d) => ({ ...d, end: e.target.value }))}
           />
         </div>
-        <Button onClick={handleAnalyze} disabled={loading}>
-          {loading ? "Analyzing..." : "Analyze Portfolio"}
+        <Button onClick={handleAnalyze} disabled={loading} className="w-full">
+          {loading ? (
+            <>
+              <RefreshCw className="w-4 h-4 mr-2 animate-spin" />
+              Analyzing Portfolio...
+            </>
+          ) : (
+            "Analyze Portfolio"
+          )}
         </Button>
+
+        {error && (
+          <Alert variant="destructive">
+            <AlertCircle className="h-4 w-4" />
+            <AlertDescription>
+              {error}
+              <Button 
+                variant="outline" 
+                size="sm" 
+                onClick={handleAnalyze}
+                className="ml-4"
+              >
+                Retry
+              </Button>
+            </AlertDescription>
+          </Alert>
+        )}
 
         {result && (
           <>

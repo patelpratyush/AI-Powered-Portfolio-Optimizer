@@ -1,35 +1,57 @@
 import { useLocation, Link } from 'react-router-dom';
+import { useDarkMode } from '@/hooks/useDarkMode';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
+import { Badge } from "@/components/ui/badge";
 import { ResponsiveContainer, LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip } from "recharts";
-import { ArrowLeft } from "lucide-react";
+import { ArrowLeft, TrendingUp, Target, BarChart3, CheckCircle } from "lucide-react";
 import { BarChart, Bar } from 'recharts';
 import { PieChart, Pie, Cell, Legend } from 'recharts';
 import { ScatterChart, Scatter, ZAxis } from 'recharts';
 import { AreaChart, Area } from "recharts";
+import { 
+  PerformanceMetricsCard, 
+  EnhancedAllocationChart, 
+  EnhancedEfficientFrontier, 
+  EnhancedGrowthChart 
+} from "@/components/EnhancedCharts";
 
 
 const Results = () => {
+  const { isDarkMode } = useDarkMode();
   const location = useLocation();
   const result = location.state?.result;
 
   if (!result) {
     return (
-      <div className="min-h-screen flex items-center justify-center bg-gray-50 dark:bg-slate-900">
-        <Card className="max-w-md p-6 shadow-lg border border-gray-200 dark:border-slate-700">
-          <CardHeader>
-            <CardTitle className="text-lg">No Portfolio Data</CardTitle>
-            <CardDescription className="text-sm text-slate-600 dark:text-slate-400">
-              Submit a portfolio optimization request first.
+      <div className="min-h-screen flex items-center justify-center bg-gradient-to-br from-slate-50 via-blue-50/30 to-indigo-100/50 dark:from-slate-900 dark:via-slate-800 dark:to-indigo-900/20">
+        <Card className="max-w-md bg-white/80 dark:bg-slate-800/80 backdrop-blur-xl border-white/20 dark:border-slate-700/20 shadow-xl">
+          <CardHeader className="text-center">
+            <div className="w-16 h-16 mx-auto mb-4 bg-gradient-to-br from-blue-500 to-indigo-600 rounded-2xl flex items-center justify-center shadow-lg">
+              <BarChart3 className="w-8 h-8 text-white" />
+            </div>
+            <CardTitle className="text-xl bg-gradient-to-r from-slate-900 to-blue-900 dark:from-slate-100 dark:to-blue-300 bg-clip-text text-transparent">
+              No Portfolio Data
+            </CardTitle>
+            <CardDescription className="text-base text-slate-600 dark:text-slate-400">
+              Submit a portfolio optimization request first to view your results.
             </CardDescription>
           </CardHeader>
           <CardContent>
-            <Link to="/">
-              <Button className="mt-4 w-full bg-blue-600 hover:bg-blue-700 text-white">
-                <ArrowLeft className="w-4 h-4 mr-2" />
-                Back to Form
-              </Button>
-            </Link>
+            <div className="space-y-2">
+              <Link to="/">
+                <Button className="w-full bg-gradient-to-r from-blue-600 to-indigo-600 hover:from-blue-700 hover:to-indigo-700 text-white shadow-lg">
+                  <ArrowLeft className="w-4 h-4 mr-2" />
+                  Back to Home
+                </Button>
+              </Link>
+              <Link to="/ai-hub">
+                <Button variant="outline" className="w-full">
+                  <BarChart3 className="w-4 h-4 mr-2" />
+                  AI Analysis Hub
+                </Button>
+              </Link>
+            </div>
           </CardContent>
         </Card>
       </div>
@@ -40,26 +62,31 @@ const Results = () => {
     expected_return: result.expected_return,
     volatility: result.volatility,
     sharpe_ratio: result.sharpe_ratio,
+    sortino_ratio: result.sortino_ratio,
+    downside_deviation: result.downside_deviation,
     portfolio_value: result.portfolio_value || 100000  // fallback if not present
   };
   
   const composition = result.tickers.map((ticker: string, index: number) => ({
     ticker,
-    weight: result.weights[index]
+    weight: result.weights[index],
+    percentage: (result.weights[index] * 100).toFixed(2)
   }));
   
   const frontier = result.efficient_frontier || [];
   const growthData = result.portfolio_growth
   ? Object.entries(result.portfolio_growth).map(([date, growth]) => ({
       date,
-      value: parseFloat((growth as number * metrics.portfolio_value).toFixed(2))
+      value: growth as number
     }))
   : [];
 
   const forecastData = result.forecast_growth
-  ? Object.entries(result.forecast_growth).map(([date, value]) => ({
+  ? Object.entries(result.forecast_growth).map(([date, forecast]: [string, any]) => ({
       date,
-      value: parseFloat((value as number).toFixed(2))
+      value: forecast.value || forecast,
+      lower: forecast.lower,
+      upper: forecast.upper
     }))
   : [];
   
@@ -76,265 +103,154 @@ const Results = () => {
 
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-white to-slate-100 dark:from-slate-900 dark:to-slate-800 p-8 space-y-10 transition-colors duration-300">
-      {/* Summary Metrics */}
-      <div className="grid grid-cols-1 md:grid-cols-4 gap-6">
-        <Card>
-          <CardContent className="p-4">
-            <div className="text-sm text-gray-500 dark:text-slate-400">Expected Return</div>
-            <div className="text-xl font-bold text-green-600 dark:text-green-400">
-              {(metrics.expected_return * 100).toFixed(2)}%
+    <div className="min-h-screen bg-gradient-to-br from-slate-50 via-blue-50/30 to-indigo-100/50 dark:from-slate-900 dark:via-slate-800 dark:to-indigo-900/20 transition-colors duration-500">
+      {/* Animated background elements */}
+      <div className="fixed inset-0 overflow-hidden pointer-events-none">
+        <div className="absolute -top-40 -right-40 w-80 h-80 bg-gradient-to-br from-green-400/10 to-blue-600/10 rounded-full blur-3xl animate-pulse"></div>
+        <div className="absolute -bottom-40 -left-40 w-80 h-80 bg-gradient-to-tr from-indigo-400/10 to-purple-600/10 rounded-full blur-3xl animate-pulse delay-700"></div>
+        <div className="absolute top-1/3 left-1/4 w-60 h-60 bg-gradient-to-br from-emerald-400/5 to-cyan-600/5 rounded-full blur-2xl animate-pulse delay-1000"></div>
+      </div>
+
+      <div className="relative z-10 p-8 space-y-8">
+        {/* Enhanced Header */}
+        <div className="flex flex-col lg:flex-row lg:items-center lg:justify-between gap-6">
+          <div className="flex items-start space-x-6">
+            <div className="flex items-center space-x-3">
+              <Link to="/">
+                <Button variant="outline" size="sm" className="bg-white/80 dark:bg-slate-800/80 backdrop-blur-sm hover:bg-white dark:hover:bg-slate-700 border-white/20 dark:border-slate-700/20">
+                  <ArrowLeft className="w-4 h-4 mr-2" />
+                  Home
+                </Button>
+              </Link>
+              <Link to="/basic">
+                <Button variant="outline" size="sm" className="bg-white/80 dark:bg-slate-800/80 backdrop-blur-sm hover:bg-white dark:hover:bg-slate-700 border-white/20 dark:border-slate-700/20">
+                  Back to Optimizer
+                </Button>
+              </Link>
+              <Link to="/ai-hub">
+                <Button variant="outline" size="sm" className="bg-white/80 dark:bg-slate-800/80 backdrop-blur-sm hover:bg-white dark:hover:bg-slate-700 border-white/20 dark:border-slate-700/20">
+                  <BarChart3 className="w-4 h-4 mr-2" />
+                  AI Analysis
+                </Button>
+              </Link>
             </div>
-          </CardContent>
-        </Card>
-        <Card>
-          <CardContent className="p-4">
-            <div className="text-sm text-gray-500 dark:text-slate-400">Volatility</div>
-            <div className="text-xl font-bold text-orange-600 dark:text-orange-400">
-              {(metrics.volatility * 100).toFixed(2)}%
+            <div>
+              <div className="flex items-center space-x-4 mb-2">
+                <div className="w-12 h-12 bg-gradient-to-br from-green-500 via-blue-600 to-indigo-600 rounded-2xl flex items-center justify-center shadow-lg">
+                  <TrendingUp className="w-7 h-7 text-white" />
+                </div>
+                <h1 className="text-4xl lg:text-5xl font-bold bg-gradient-to-r from-green-600 via-blue-600 to-indigo-600 bg-clip-text text-transparent">
+                  Portfolio Results
+                </h1>
+              </div>
+              <p className="text-slate-600 dark:text-slate-400 text-lg max-w-2xl">
+                Smart optimization results with professional-grade analytics and performance insights
+              </p>
+              <div className="flex flex-wrap gap-3 mt-4">
+                <Badge className="bg-green-100 text-green-800 dark:bg-green-900/30 dark:text-green-300">
+                  <TrendingUp className="w-3 h-3 mr-1" />
+                  {result.strategy}
+                </Badge>
+                <Badge className="bg-blue-100 text-blue-800 dark:bg-blue-900/30 dark:text-blue-300">
+                  <Target className="w-3 h-3 mr-1" />
+                  {result.tickers.length} Assets
+                </Badge>
+                <Badge className="bg-purple-100 text-purple-800 dark:bg-purple-900/30 dark:text-purple-300">
+                  <BarChart3 className="w-3 h-3 mr-1" />
+                  {result.data_points} Data Points
+                </Badge>
+              </div>
             </div>
-          </CardContent>
-        </Card>
-        <Card>
-          <CardContent className="p-4">
-            <div className="text-sm text-gray-500 dark:text-slate-400">Sharpe Ratio</div>
-            <div className="text-xl font-bold text-blue-600 dark:text-blue-400">
-              {metrics.sharpe_ratio.toFixed(2)}
+          </div>
+          <div className="flex items-center space-x-3">
+            <div className="w-3 h-3 bg-green-500 rounded-full animate-pulse"></div>
+            <Badge variant="secondary" className="bg-green-100 text-green-800 dark:bg-green-900/30 dark:text-green-300">
+              <CheckCircle className="w-3 h-3 mr-1" />
+              Optimized
+            </Badge>
+          </div>
+        </div>
+        
+        {/* Enhanced Performance Metrics */}
+        <PerformanceMetricsCard metrics={metrics} />
+
+        {/* Enhanced Efficient Frontier */}
+        {frontier && frontier.length > 0 && (
+          <EnhancedEfficientFrontier 
+            data={frontier} 
+            currentPortfolio={{
+              return: metrics.expected_return,
+              volatility: metrics.volatility,
+              sharpe_ratio: metrics.sharpe_ratio
+            }}
+          />
+        )}
+
+        {/* Enhanced Portfolio Allocation */}
+        <EnhancedAllocationChart data={composition} title="Smart Portfolio Allocation" />
+
+        {/* Enhanced Growth Chart */}
+        {(growthData.length > 0 || forecastData.length > 0) && (
+          <EnhancedGrowthChart 
+            data={growthData} 
+            forecastData={forecastData}
+            title="Portfolio Performance & AI Forecast"
+          />
+        )}
+
+        {/* Enhanced Quick Stats Footer */}
+        <Card className="bg-gradient-to-r from-slate-100/80 via-green-50/80 to-blue-100/80 dark:from-slate-800/80 dark:via-slate-700/80 dark:to-green-900/20 backdrop-blur-xl border-white/20 dark:border-slate-700/20 shadow-xl overflow-hidden">
+          <div className="absolute inset-0 bg-gradient-to-r from-transparent via-green-500/5 to-transparent"></div>
+          <CardContent className="relative p-8">
+            <div className="text-center mb-6">
+              <h3 className="text-lg font-semibold text-slate-900 dark:text-slate-100 mb-2">Optimization Summary</h3>
+              <p className="text-sm text-slate-600 dark:text-slate-400">Professional portfolio optimization completed successfully</p>
             </div>
-          </CardContent>
-        </Card>
-        <Card>
-          <CardContent className="p-4">
-            <div className="text-sm text-gray-500 dark:text-slate-400">Portfolio Value</div>
-            <div className="text-xl font-bold text-purple-600 dark:text-purple-400">
-              ${metrics.portfolio_value.toLocaleString()}
+            <div className="grid grid-cols-2 md:grid-cols-4 gap-6">
+              <div className="text-center group">
+                <div className="w-16 h-16 mx-auto mb-3 bg-gradient-to-br from-green-500 to-emerald-600 rounded-2xl flex items-center justify-center shadow-lg group-hover:shadow-xl transition-all duration-300">
+                  <TrendingUp className="w-8 h-8 text-white" />
+                </div>
+                <div className="text-3xl font-bold text-green-600 dark:text-green-400 mb-1">
+                  {(metrics.expected_return * 100).toFixed(1)}%
+                </div>
+                <div className="text-sm text-slate-600 dark:text-slate-400">Expected Return</div>
+                <div className="text-xs text-slate-500 dark:text-slate-500">Annualized</div>
+              </div>
+              <div className="text-center group">
+                <div className="w-16 h-16 mx-auto mb-3 bg-gradient-to-br from-orange-500 to-amber-600 rounded-2xl flex items-center justify-center shadow-lg group-hover:shadow-xl transition-all duration-300">
+                  <Target className="w-8 h-8 text-white" />
+                </div>
+                <div className="text-3xl font-bold text-orange-600 dark:text-orange-400 mb-1">
+                  {(metrics.volatility * 100).toFixed(1)}%
+                </div>
+                <div className="text-sm text-slate-600 dark:text-slate-400">Risk Level</div>
+                <div className="text-xs text-slate-500 dark:text-slate-500">Volatility</div>
+              </div>
+              <div className="text-center group">
+                <div className="w-16 h-16 mx-auto mb-3 bg-gradient-to-br from-blue-500 to-cyan-600 rounded-2xl flex items-center justify-center shadow-lg group-hover:shadow-xl transition-all duration-300">
+                  <BarChart3 className="w-8 h-8 text-white" />
+                </div>
+                <div className="text-3xl font-bold text-blue-600 dark:text-blue-400 mb-1">
+                  {metrics.sharpe_ratio.toFixed(2)}
+                </div>
+                <div className="text-sm text-slate-600 dark:text-slate-400">Sharpe Ratio</div>
+                <div className="text-xs text-slate-500 dark:text-slate-500">Risk-adjusted</div>
+              </div>
+              <div className="text-center group">
+                <div className="w-16 h-16 mx-auto mb-3 bg-gradient-to-br from-purple-500 to-violet-600 rounded-2xl flex items-center justify-center shadow-lg group-hover:shadow-xl transition-all duration-300">
+                  <CheckCircle className="w-8 h-8 text-white" />
+                </div>
+                <div className="text-3xl font-bold text-purple-600 dark:text-purple-400 mb-1">
+                  {result.tickers.length}
+                </div>
+                <div className="text-sm text-slate-600 dark:text-slate-400">Assets</div>
+                <div className="text-xs text-slate-500 dark:text-slate-500">Diversified</div>
+              </div>
             </div>
           </CardContent>
         </Card>
       </div>
-
-      {/* Efficient Frontier Chart */}
-      {frontier && frontier.length > 0 && (
-        <Card>
-          <CardHeader>
-            <CardTitle className="text-lg font-semibold text-slate-800 dark:text-slate-100">Efficient Frontier</CardTitle>
-          </CardHeader>
-          <CardContent className="h-96">
-            <ResponsiveContainer width="100%" height="100%">
-              <LineChart data={frontier}>
-                <CartesianGrid strokeDasharray="3 3" />
-                <XAxis dataKey="risk" label={{ value: 'Risk (%)', position: 'insideBottom', offset: -5 }} />
-                <YAxis label={{ value: 'Return (%)', angle: -90, position: 'insideLeft' }} />
-                <Tooltip formatter={(val: number) => `${(val * 100).toFixed(2)}%`} />
-                <Line type="monotone" dataKey="return" stroke="#3B82F6" strokeWidth={2} />
-              </LineChart>
-            </ResponsiveContainer>
-          </CardContent>
-        </Card>
-      )}
-
-      {frontier && frontier.length > 0 && (
-      <Card>
-        <CardHeader>
-          <CardTitle className="text-lg font-semibold text-slate-800 dark:text-slate-100">
-            Sharpe Ratio vs Volatility (Bubble Chart)
-          </CardTitle>
-        </CardHeader>
-        <CardContent className="h-96">
-          <ResponsiveContainer width="100%" height="100%">
-            <ScatterChart>
-              <CartesianGrid strokeDasharray="3 3" />
-              <XAxis
-                type="number"
-                dataKey="volatility"
-                name="Volatility"
-                tickFormatter={(v: number) => `${(v * 100).toFixed(1)}%`}
-              />
-              <YAxis
-                type="number"
-                dataKey="return"
-                name="Return"
-                tickFormatter={(v: number) => `${(v * 100).toFixed(1)}%`}
-              />
-              <ZAxis
-                type="number"
-                dataKey="sharpe_ratio"
-                name="Sharpe Ratio"
-                range={[60, 400]}
-              />
-              <Tooltip
-                formatter={(val: number, name: string) => {
-                  return name === 'sharpe_ratio'
-                    ? val.toFixed(2)
-                    : `${(val * 100).toFixed(2)}%`;
-                }}
-              />
-              <Scatter
-                name="Portfolios"
-                data={frontier}
-                fill="#6366F1"
-              />
-            </ScatterChart>
-          </ResponsiveContainer>
-        </CardContent>
-      </Card>
-    )}
-
-
-      {/* Portfolio Composition */}
-      <Card>
-        <CardHeader>
-          <CardTitle className="text-lg font-semibold text-slate-800 dark:text-slate-100">Portfolio Allocation</CardTitle>
-        </CardHeader>
-        <CardContent className="space-y-3">
-          {composition.map((item: any, index: number) => (
-            <div key={item.ticker} className="flex justify-between items-center">
-              <div className="flex items-center space-x-2">
-                <div
-                  className="w-4 h-4 rounded-full"
-                  style={{ backgroundColor: colors[index % colors.length] }}
-                ></div>
-                <span className="text-sm text-slate-700 dark:text-slate-200">{item.ticker}</span>
-              </div>
-              <span className="text-sm font-medium text-slate-800 dark:text-slate-100">
-                {(item.weight * 100).toFixed(2)}%
-              </span>
-            </div>
-          ))}
-        </CardContent>
-      </Card>
-
-      {/* Portfolio Weights Bar Chart */}
-      <Card>
-        <CardHeader>
-          <CardTitle className="text-lg font-semibold text-slate-800 dark:text-slate-100">
-            Portfolio Weights (Bar Chart)
-          </CardTitle>
-        </CardHeader>
-        <CardContent className="h-80">
-          <ResponsiveContainer width="100%" height="100%">
-            <BarChart data={composition}>
-              <CartesianGrid strokeDasharray="3 3" />
-              <XAxis dataKey="ticker" />
-              <YAxis />
-              <Tooltip formatter={(value: number) => `${(value * 100).toFixed(2)}%`} />
-              <Bar dataKey="weight">
-                {composition.map((entry, index) => (
-                  <Cell key={`cell-${index}`} fill={colors[index % colors.length]} />
-                ))}
-              </Bar>
-            </BarChart>
-          </ResponsiveContainer>
-        </CardContent>
-      </Card>
-      
-      {/* Portfolio Composition Pie Chart */}
-      <Card>
-        <CardHeader>
-          <CardTitle className="text-lg font-semibold text-slate-800 dark:text-slate-100">
-            Portfolio Composition (Pie Chart)
-          </CardTitle>
-        </CardHeader>
-        <CardContent className="h-96">
-          <ResponsiveContainer width="100%" height="100%">
-            <PieChart>
-              <Pie
-                data={composition}
-                dataKey="weight"
-                nameKey="ticker"
-                cx="50%"
-                cy="50%"
-                outerRadius={100}
-                label={({ name, percent }) => `${name}: ${(percent * 100).toFixed(1)}%`}
-              >
-                {composition.map((entry, index) => (
-                  <Cell key={`slice-${index}`} fill={colors[index % colors.length]} />
-                ))}
-              </Pie>
-              <Legend />
-            </PieChart>
-          </ResponsiveContainer>
-        </CardContent>
-      </Card>
-
-      {growthData.length > 0 && (
-      <Card>
-        <CardHeader>
-          <CardTitle className="text-lg font-semibold text-slate-800 dark:text-slate-100">
-            Portfolio Value Over Time
-          </CardTitle>
-        </CardHeader>
-        <CardContent className="h-96">
-          <ResponsiveContainer width="100%" height="100%">
-            <AreaChart data={growthData}>
-              <defs>
-                <linearGradient id="valueFill" x1="0" y1="0" x2="0" y2="1">
-                  <stop offset="5%" stopColor="#3B82F6" stopOpacity={0.8}/>
-                  <stop offset="95%" stopColor="#3B82F6" stopOpacity={0}/>
-                </linearGradient>
-              </defs>
-              <XAxis dataKey="date" tick={{ fontSize: 10 }} />
-              <YAxis
-                domain={['dataMin', 'dataMax']}
-                tickFormatter={(v) => `$${(v / 1000).toFixed(1)}k`}
-              />
-              <CartesianGrid strokeDasharray="3 3" />
-              <Tooltip formatter={(val: number) => `$${val.toFixed(2)}`} />
-              <Area
-                type="monotone"
-                dataKey="value"
-                stroke="#3B82F6"
-                fillOpacity={1}
-                fill="url(#valueFill)"
-              />
-            </AreaChart>
-          </ResponsiveContainer>
-        </CardContent>
-      </Card>
-    )}
-
-    {forecastData.length > 0 && (
-  <Card>
-    <CardHeader>
-      <CardTitle className="text-lg font-semibold text-slate-800 dark:text-slate-100">Forecasted Portfolio Growth</CardTitle>
-    </CardHeader>
-    <CardContent className="h-96">
-      <ResponsiveContainer width="100%" height="100%">
-        <AreaChart data={forecastData}>
-          <defs>
-            <linearGradient id="colorBounds" x1="0" y1="0" x2="0" y2="1">
-              <stop offset="5%" stopColor="#3B82F6" stopOpacity={0.3}/>
-              <stop offset="95%" stopColor="#3B82F6" stopOpacity={0}/>
-            </linearGradient>
-          </defs>
-          <CartesianGrid strokeDasharray="3 3" />
-          <XAxis dataKey="date" />
-          <YAxis />
-          <Tooltip formatter={(val: number) => `$${val.toFixed(2)}`} />
-          <Area
-            type="monotone"
-            dataKey="upper"
-            stroke="none"
-            fill="url(#colorBounds)"
-            activeDot={false}
-          />
-          <Area
-            type="monotone"
-            dataKey="lower"
-            stroke="none"
-            fill="#ffffff"
-            activeDot={false}
-          />
-          <Line type="monotone" dataKey="value" stroke="#10B981" strokeWidth={2} dot={false} />
-        </AreaChart>
-      </ResponsiveContainer>
-    </CardContent>
-  </Card>
-)}
-
-
-
-
     </div>
   );
 };

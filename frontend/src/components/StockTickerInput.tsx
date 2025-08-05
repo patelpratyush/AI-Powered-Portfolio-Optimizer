@@ -37,7 +37,7 @@ const StockTickerInput = ({ tickers, onTickersChange }: StockTickerInputProps) =
   const fetchSuggestions = async (query: string) => {
     if (!query) return setSuggestions([]);
     try {
-      const res = await fetch(`http://localhost:5000/api/autocomplete?q=${query}`);
+      const res = await fetch(`/api/autocomplete?q=${query}`);
       const data = await res.json();
       setSuggestions(data);
     } catch (err) {

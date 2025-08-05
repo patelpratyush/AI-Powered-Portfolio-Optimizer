@@ -3,30 +3,15 @@ import EfficientFrontierChart from "@/components/EfficientFrontierChart";
 import PortfolioForm from "@/components/PortfolioForm";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
-import { BarChart3, Moon, Sparkles, Sun, Target, TrendingUp } from "lucide-react";
-import { useEffect, useState } from 'react';
+import { BarChart3, Moon, Sparkles, Sun, Target, TrendingUp, ArrowLeft } from "lucide-react";
 import { Link, useLocation } from 'react-router-dom';
+import { useDarkMode } from '@/hooks/useDarkMode';
 
 
 const Index = () => {
-  const [isDarkMode, setIsDarkMode] = useState(false);
+  const { isDarkMode, toggleDarkMode } = useDarkMode();
   const location = useLocation();
   const result = location.state?.result;
-
-  useEffect(() => {
-    // Check system preference
-    const mediaQuery = window.matchMedia('(prefers-color-scheme: dark)');
-    setIsDarkMode(mediaQuery.matches);
-    
-    const handleChange = (e: MediaQueryListEvent) => setIsDarkMode(e.matches);
-    mediaQuery.addEventListener('change', handleChange);
-    
-    return () => mediaQuery.removeEventListener('change', handleChange);
-  }, []);
-
-  useEffect(() => {
-    document.documentElement.classList.toggle('dark', isDarkMode);
-  }, [isDarkMode]);
 
   return (
     <div className="min-h-screen bg-gradient-to-br from-slate-50 via-blue-50 to-indigo-100 dark:from-slate-900 dark:via-slate-800 dark:to-indigo-900 transition-colors duration-500">
@@ -48,20 +33,25 @@ const Index = () => {
               AI Portfolio Optimizer
             </h1>
           </div>
-          {/* <Link
-            to="/analyze"
-            className="text-blue-600 dark:text-blue-400 underline hover:opacity-80"
-          >
-            Analyze Current Portfolio
-          </Link> */}
-          <Button
-            variant="ghost"
-            size="sm"
-            onClick={() => setIsDarkMode(!isDarkMode)}
-            className="hover:bg-white/20 dark:hover:bg-slate-800/50 backdrop-blur-sm"
-          >
-            {isDarkMode ? <Sun className="w-5 h-5" /> : <Moon className="w-5 h-5" />}
-          </Button>
+          <div className="flex items-center space-x-4">
+            <Link to="/">
+              <Button 
+                variant="outline" 
+                className="bg-white/20 dark:bg-slate-800/20 backdrop-blur-sm border-white/30 dark:border-slate-600/30"
+              >
+                <ArrowLeft className="w-4 h-4 mr-2" />
+                Home
+              </Button>
+            </Link>
+            <Button
+              variant="ghost"
+              size="sm"
+              onClick={toggleDarkMode}
+              className="hover:bg-white/20 dark:hover:bg-slate-800/50 backdrop-blur-sm"
+            >
+              {isDarkMode ? <Sun className="w-5 h-5" /> : <Moon className="w-5 h-5" />}
+            </Button>
+          </div>
         </div>
       </header>
 

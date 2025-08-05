@@ -1,5 +1,39 @@
+# Core dependencies
 flask
 flask-cors
 yfinance
 numpy
 pandas
+scipy
+prophet
+requests
+
+# Machine Learning & Optimization  
+scikit-learn
+cvxpy
+xgboost
+tensorflow
+keras
+ta  # Technical Analysis
+joblib
+
+# Financial libraries (reliable ones)
+pyportfolioopt
+
+# Data visualization
+plotly
+
+# Text processing (optional for future features)
+nltk
+textblob
+feedparser
+beautifulsoup4
+
+# Web scraping (optional)
+selenium
+
+# API integrations (optional)
+alpha_vantage
+
+# Additional math libraries
+statsmodels
