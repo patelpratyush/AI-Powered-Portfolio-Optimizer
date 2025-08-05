@@ -178,25 +178,25 @@ def combine_predictions(prophet_pred: Dict, xgb_pred: Optional[Dict], lstm_pred:
         
         # Convert advisor recommendation to API format
         enhanced_signal = {
-            'action': recommendation.signal.value,
-            'strength': recommendation.confidence / 100.0,
-            'confidence': recommendation.confidence,
-            'reasoning': recommendation.summary,
-            'target_price': recommendation.target_price,
-            'stop_loss': recommendation.stop_loss,
-            'risk_level': recommendation.risk_level,
-            'expected_return': recommendation.expected_return,
-            'max_downside': recommendation.max_downside,
-            'time_horizon': recommendation.time_horizon,
+            'action': str(recommendation.signal.value),
+            'strength': float(recommendation.confidence / 100.0),
+            'confidence': float(recommendation.confidence),
+            'reasoning': str(recommendation.summary),
+            'target_price': float(recommendation.target_price) if recommendation.target_price is not None else None,
+            'stop_loss': float(recommendation.stop_loss) if recommendation.stop_loss is not None else None,
+            'risk_level': str(recommendation.risk_level),
+            'expected_return': float(recommendation.expected_return),
+            'max_downside': float(recommendation.max_downside),
+            'time_horizon': str(recommendation.time_horizon),
             'reasons': [
                 {
-                    'category': reason.category,
-                    'indicator': reason.indicator,
-                    'value': reason.value,
-                    'threshold': reason.threshold,
-                    'weight': reason.weight,
-                    'description': reason.description,
-                    'bullish': reason.bullish
+                    'category': str(reason.category),
+                    'indicator': str(reason.indicator),
+                    'value': float(reason.value),
+                    'threshold': float(reason.threshold),
+                    'weight': float(reason.weight),
+                    'description': str(reason.description),
+                    'bullish': bool(reason.bullish)
                 }
                 for reason in recommendation.reasons
             ],

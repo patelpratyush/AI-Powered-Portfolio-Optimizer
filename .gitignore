@@ -7,11 +7,53 @@ yarn-error.log*
 pnpm-debug.log*
 lerna-debug.log*
 
+# Frontend dependencies and build
 node_modules
-venv
 dist
 dist-ssr
 *.local
+
+# Python environment and dependencies
+venv/
+env/
+__pycache__/
+*.py[cod]
+*$py.class
+*.so
+.Python
+build/
+develop-eggs/
+downloads/
+eggs/
+.eggs/
+lib/
+lib64/
+parts/
+sdist/
+var/
+wheels/
+*.egg-info/
+.installed.cfg
+*.egg
+MANIFEST
+
+# Jupyter Notebook
+.ipynb_checkpoints
+
+# Machine Learning models and data
+*.h5
+*.keras
+*.joblib
+*.pkl
+*.pickle
+model_training.log
+*.csv
+!clean_tickers.csv
+
+# Environment variables
+.env
+.env.local
+.env.production
 
 # Editor directories and files
 .vscode/*
@@ -23,3 +65,7 @@ dist-ssr
 *.njsproj
 *.sln
 *.sw?
+
+# Operating system files
+Thumbs.db
+.DS_Store

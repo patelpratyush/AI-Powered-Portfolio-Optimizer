@@ -195,9 +195,9 @@ class BuySellAdvisor:
             ))
         
         # 4. Volume Analysis
-        volume_sma = ta.volume.volume_sma(df['Close'], df['Volume'], window=20).iloc[-1]
+        volume_sma = df['Volume'].rolling(window=20).mean().iloc[-1]
         current_volume = df['Volume'].iloc[-1]
-        volume_ratio = current_volume / volume_sma
+        volume_ratio = current_volume / volume_sma if volume_sma > 0 else 1.0
         
         if volume_ratio > 1.5:
             price_change = (current_price - df['Close'].iloc[-2]) / df['Close'].iloc[-2]
