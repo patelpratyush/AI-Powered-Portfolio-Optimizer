@@ -131,73 +131,77 @@ const EnhancedRecommendations: React.FC<EnhancedRecommendationsProps> = ({
 
   return (
     <TooltipProvider>
-      <Card className={`border-2 transition-all duration-300 hover:shadow-lg ${getSignalColor(tradingSignal.action)}`}>
-        <CardHeader className="pb-4">
+      <Card className="border-0 shadow-sm bg-white overflow-hidden">
+        <CardHeader className="pb-8 bg-gradient-to-r from-slate-50 to-gray-50">
           <div className="flex items-center justify-between">
-            <div className="flex items-center space-x-3">
-              <div className={`w-12 h-12 rounded-xl flex items-center justify-center ${getSignalColor(tradingSignal.action)} border-2`}>
+            <div className="flex items-center gap-4">
+              <div className={`w-16 h-16 rounded-2xl flex items-center justify-center ${getSignalColor(tradingSignal.action)} shadow-sm`}>
                 {getSignalIcon(tradingSignal.action)}
               </div>
-              <div>
-                <CardTitle className="text-xl font-bold">
-                  {tradingSignal.action.replace('_', ' ')} RECOMMENDATION
+              <div className="space-y-2">
+                <CardTitle className="text-2xl font-bold text-gray-900">
+                  {tradingSignal.action.replace('_', ' ')} SIGNAL
                 </CardTitle>
-                <CardDescription className="text-base">
+                <CardDescription className="text-base text-gray-600 leading-relaxed max-w-md">
                   {tradingSignal.summary || tradingSignal.reasoning}
                 </CardDescription>
               </div>
             </div>
-            <div className="text-right">
-              <div className="text-sm opacity-75">Confidence</div>
-              <div className="text-3xl font-bold">
+            <div className="text-right space-y-2">
+              <div className="text-sm font-medium text-gray-600">AI Confidence</div>
+              <div className="text-4xl font-bold text-gray-900">
                 {confidence.toFixed(0)}%
               </div>
-              <Progress value={confidence} className="w-20 h-2 mt-1" />
+              <div className="w-24">
+                <Progress value={confidence} className="h-3 bg-gray-200" />
+              </div>
             </div>
           </div>
         </CardHeader>
 
-        <CardContent className="pt-0">
+        <CardContent className="p-8">
           {/* Key Metrics Row */}
-          <div className="grid grid-cols-2 md:grid-cols-4 gap-4 mb-6">
+          <div className="grid grid-cols-2 md:grid-cols-4 gap-6 mb-8">
             {tradingSignal.target_price && (
-              <div className="text-center p-3 bg-white dark:bg-slate-800 rounded-lg border">
-                <div className="text-sm text-slate-600 dark:text-slate-400">Target Price</div>
-                <div className="text-xl font-bold text-green-600 dark:text-green-400">
+              <div className="text-center p-6 bg-gradient-to-br from-green-50 to-emerald-50 rounded-2xl border border-green-200">
+                <div className="text-sm font-medium text-gray-600 mb-2">Target Price</div>
+                <div className="text-2xl font-bold text-green-600 mb-1">
                   ${tradingSignal.target_price.toFixed(2)}
                 </div>
-                <div className="text-xs text-slate-500">
+                <div className="text-sm text-green-700 font-medium">
                   {((tradingSignal.target_price - currentPrice) / currentPrice * 100).toFixed(1)}% upside
                 </div>
               </div>
             )}
 
             {tradingSignal.stop_loss && (
-              <div className="text-center p-3 bg-white dark:bg-slate-800 rounded-lg border">
-                <div className="text-sm text-slate-600 dark:text-slate-400">Stop Loss</div>
-                <div className="text-xl font-bold text-red-600 dark:text-red-400">
+              <div className="text-center p-6 bg-gradient-to-br from-red-50 to-rose-50 rounded-2xl border border-red-200">
+                <div className="text-sm font-medium text-gray-600 mb-2">Stop Loss</div>
+                <div className="text-2xl font-bold text-red-600 mb-1">
                   ${tradingSignal.stop_loss.toFixed(2)}
                 </div>
-                <div className="text-xs text-slate-500">
+                <div className="text-sm text-red-700 font-medium">
                   {((tradingSignal.stop_loss - currentPrice) / currentPrice * 100).toFixed(1)}% risk
                 </div>
               </div>
             )}
 
             {tradingSignal.risk_level && (
-              <div className="text-center p-3 bg-white dark:bg-slate-800 rounded-lg border">
-                <div className="text-sm text-slate-600 dark:text-slate-400">Risk Level</div>
-                <Badge className={`text-sm font-bold ${getRiskLevelColor(tradingSignal.risk_level)}`}>
-                  <Shield className="w-3 h-3 mr-1" />
-                  {tradingSignal.risk_level.toUpperCase()}
-                </Badge>
+              <div className="text-center p-6 bg-gradient-to-br from-orange-50 to-amber-50 rounded-2xl border border-orange-200">
+                <div className="text-sm font-medium text-gray-600 mb-2">Risk Level</div>
+                <div className="flex justify-center mb-1">
+                  <Badge className={`text-base font-bold px-4 py-2 rounded-full ${getRiskLevelColor(tradingSignal.risk_level)}`}>
+                    <Shield className="w-4 h-4 mr-2" />
+                    {tradingSignal.risk_level.toUpperCase()}
+                  </Badge>
+                </div>
               </div>
             )}
 
             {tradingSignal.time_horizon && (
-              <div className="text-center p-3 bg-white dark:bg-slate-800 rounded-lg border">
-                <div className="text-sm text-slate-600 dark:text-slate-400">Time Horizon</div>
-                <div className="text-xl font-bold text-blue-600 dark:text-blue-400">
+              <div className="text-center p-6 bg-gradient-to-br from-blue-50 to-indigo-50 rounded-2xl border border-blue-200">
+                <div className="text-sm font-medium text-gray-600 mb-2">Time Horizon</div>
+                <div className="text-2xl font-bold text-blue-600">
                   {tradingSignal.time_horizon.charAt(0).toUpperCase() + tradingSignal.time_horizon.slice(1)}
                 </div>
               </div>
@@ -205,42 +209,60 @@ const EnhancedRecommendations: React.FC<EnhancedRecommendationsProps> = ({
           </div>
 
           {/* Toggle Details Button */}
-          <div className="flex justify-center mb-4">
+          <div className="flex justify-center mb-8">
             <Button
               variant="outline"
               onClick={() => setShowDetails(!showDetails)}
-              className="flex items-center space-x-2"
+              className="flex items-center gap-3 px-6 py-3 rounded-xl border-2 border-gray-200 text-gray-700 hover:bg-gray-50 font-medium"
+              size="lg"
             >
-              <Eye className="w-4 h-4" />
+              <Eye className="w-5 h-5" />
               <span>{showDetails ? 'Hide' : 'Show'} Detailed Analysis</span>
-              {showDetails ? <ChevronUp className="w-4 h-4" /> : <ChevronDown className="w-4 h-4" />}
+              {showDetails ? <ChevronUp className="w-5 h-5" /> : <ChevronDown className="w-5 h-5" />}
             </Button>
           </div>
 
           {/* Detailed Analysis */}
           {showDetails && reasons.length > 0 && (
             <Tabs value={activeTab} onValueChange={setActiveTab} className="w-full">
-              <TabsList className="grid w-full grid-cols-3">
-                <TabsTrigger value="overview">Overview</TabsTrigger>
-                <TabsTrigger value="bullish">Bullish ({bullishReasons.length})</TabsTrigger>
-                <TabsTrigger value="bearish">Bearish ({bearishReasons.length})</TabsTrigger>
+              <TabsList className="grid w-full grid-cols-3 bg-gray-100 p-1 rounded-xl h-12">
+                <TabsTrigger 
+                  value="overview"
+                  className="rounded-lg font-medium data-[state=active]:bg-white data-[state=active]:shadow-sm"
+                >
+                  Overview
+                </TabsTrigger>
+                <TabsTrigger 
+                  value="bullish"
+                  className="rounded-lg font-medium data-[state=active]:bg-white data-[state=active]:shadow-sm"
+                >
+                  Bullish ({bullishReasons.length})
+                </TabsTrigger>
+                <TabsTrigger 
+                  value="bearish"
+                  className="rounded-lg font-medium data-[state=active]:bg-white data-[state=active]:shadow-sm"
+                >
+                  Bearish ({bearishReasons.length})
+                </TabsTrigger>
               </TabsList>
 
-              <TabsContent value="overview" className="mt-4">
-                <div className="space-y-4">
-                  <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                    <Card className="bg-green-50 dark:bg-green-900/20 border-green-200 dark:border-green-700">
-                      <CardContent className="p-4">
-                        <div className="flex items-center space-x-2 mb-2">
-                          <TrendingUp className="w-5 h-5 text-green-600" />
-                          <span className="font-semibold text-green-800 dark:text-green-300">
+              <TabsContent value="overview" className="mt-8">
+                <div className="space-y-6">
+                  <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                    <Card className="border-0 shadow-sm bg-gradient-to-br from-green-50 to-emerald-50 border border-green-200">
+                      <CardContent className="p-6">
+                        <div className="flex items-center gap-3 mb-4">
+                          <div className="p-2 bg-green-100 rounded-lg">
+                            <TrendingUp className="w-5 h-5 text-green-600" />
+                          </div>
+                          <span className="font-semibold text-green-800 text-lg">
                             Bullish Factors
                           </span>
                         </div>
-                        <div className="text-2xl font-bold text-green-600 mb-1">
+                        <div className="text-3xl font-bold text-green-600 mb-2">
                           {bullishReasons.length}
                         </div>
-                        <div className="text-sm text-green-700 dark:text-green-400">
+                        <div className="text-sm text-green-700 leading-relaxed">
                           Supporting {tradingSignal.action.includes('BUY') ? 'buy' : 'hold'} recommendation
                         </div>
                       </CardContent>

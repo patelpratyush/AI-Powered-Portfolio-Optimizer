@@ -144,7 +144,7 @@ const AdvancedResults = () => {
   
   // Forecast data
   const forecastData = result.forecasted_growth ?
-    Object.entries(result.forecasted_growth).map(([date, forecast]: [string, any]) => ({
+    Object.entries(result.forecasted_growth).map(([date, forecast]: [string, { value: number; lower: number; upper: number }]) => ({
       date: new Date(date).toLocaleDateString(),
       value: forecast.value,
       lower: forecast.lower,

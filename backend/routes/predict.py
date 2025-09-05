@@ -9,11 +9,21 @@ import sys
 import os
 sys.path.append(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 
+# Import security utilities
+from utils.security import secure_api_endpoint, create_custom_rate_limit
+from schemas.validation import PredictionRequest, BatchPredictionRequest, ModelTrainingRequest
+
 from models.xgb_model import XGBoostStockPredictor
 from models.lstm_model import LSTMStockPredictor
 from models.buy_sell_advisor import BuySellAdvisor
+from utils.model_cache import get_cached_predictor, get_model_cache
+from utils.sentiment_analysis import SentimentAggregator, create_sentiment_features
 from forecast import generate_ai_forecast
 import yfinance as yf
+from utils.yahoo_finance_cache import (
+    get_current_price, get_daily_data, get_stock_info as get_cached_stock_info,
+    get_multiple_current_prices, get_yahoo_finance_cache
+)
 import pandas as pd
 import numpy as np
 from datetime import datetime, timedelta
@@ -28,24 +38,22 @@ logger = logging.getLogger(__name__)
 # Create Blueprint
 predict_bp = Blueprint('predict', __name__)
 
-# Initialize predictors (lazy loading)
-_xgb_predictor = None
-_lstm_predictor = None
+# Initialize cached predictors (high performance lazy loading)
+_cached_predictors = {}
 _buy_sell_advisor = None
+_sentiment_aggregator = None
 
 def get_xgb_predictor():
-    """Get XGBoost predictor instance (lazy loading)"""
-    global _xgb_predictor
-    if _xgb_predictor is None:
-        _xgb_predictor = XGBoostStockPredictor()
-    return _xgb_predictor
+    """Get cached XGBoost predictor instance"""
+    if 'xgboost' not in _cached_predictors:
+        _cached_predictors['xgboost'] = get_cached_predictor('xgboost')
+    return _cached_predictors['xgboost']
 
 def get_lstm_predictor():
-    """Get LSTM predictor instance (lazy loading)"""
-    global _lstm_predictor
-    if _lstm_predictor is None:
-        _lstm_predictor = LSTMStockPredictor()
-    return _lstm_predictor
+    """Get cached LSTM predictor instance"""
+    if 'lstm' not in _cached_predictors:
+        _cached_predictors['lstm'] = get_cached_predictor('lstm')
+    return _cached_predictors['lstm']
 
 def get_buy_sell_advisor():
     """Get Buy/Sell advisor instance (lazy loading)"""
@@ -54,17 +62,28 @@ def get_buy_sell_advisor():
         _buy_sell_advisor = BuySellAdvisor()
     return _buy_sell_advisor
 
+def get_sentiment_aggregator():
+    """Get Sentiment aggregator instance (lazy loading)"""
+    global _sentiment_aggregator
+    if _sentiment_aggregator is None:
+        from utils.cache import get_cache_client
+        cache_client = get_cache_client()
+        _sentiment_aggregator = SentimentAggregator(cache_client)
+    return _sentiment_aggregator
+
 def get_stock_info(ticker: str) -> Dict:
-    """Get basic stock information"""
+    """Get basic stock information with caching"""
     try:
-        stock = yf.Ticker(ticker)
-        info = stock.info
-        hist = stock.history(period="5d")
+        # Use cached functions for better performance
+        current_price = get_current_price(ticker)
+        info = get_cached_stock_info(ticker)
+        
+        # Get recent history for day change calculation
+        hist = get_daily_data(ticker, period="5d")
         
         if hist.empty:
             return None
         
-        current_price = hist['Close'].iloc[-1]
         prev_close = hist['Close'].iloc[-2] if len(hist) > 1 else current_price
         
         return {
@@ -241,6 +260,7 @@ def combine_predictions(prophet_pred: Dict, xgb_pred: Optional[Dict], lstm_pred:
     }
 
 @predict_bp.route('/predict/<ticker>', methods=['GET'])
+@secure_api_endpoint(rate_limit="30 per minute")
 def predict_stock(ticker: str):
     """Predict stock price using ensemble of models"""
     try:
@@ -258,6 +278,24 @@ def predict_stock(ticker: str):
         stock_info = get_stock_info(ticker)
         if not stock_info:
             return jsonify({'error': f'Unable to fetch data for ticker {ticker}'}), 404
+        
+        # Get sentiment analysis
+        sentiment_analysis = None
+        try:
+            logger.info(f"Getting sentiment analysis for {ticker}")
+            sentiment_aggregator = get_sentiment_aggregator()
+            sentiment_score = sentiment_aggregator.get_ticker_sentiment(ticker, days=7)
+            sentiment_analysis = {
+                'score': sentiment_score.score,
+                'confidence': sentiment_score.confidence,
+                'interpretation': _interpret_sentiment_score(sentiment_score.score, sentiment_score.confidence),
+                'volume': sentiment_score.volume,
+                'source': sentiment_score.source,
+                'last_updated': sentiment_score.timestamp.isoformat()
+            }
+            logger.info(f"Sentiment analysis completed for {ticker}: score={sentiment_score.score:.3f}")
+        except Exception as e:
+            logger.error(f"Sentiment analysis failed for {ticker}: {str(e)}")
         
         predictions = {}
         
@@ -375,6 +413,7 @@ def predict_stock(ticker: str):
         response = {
             'stock_info': stock_info,
             'predictions': predictions,
+            'sentiment_analysis': sentiment_analysis,
             'request_info': {
                 'ticker': ticker,
                 'days_ahead': days_ahead,
@@ -390,14 +429,19 @@ def predict_stock(ticker: str):
         return jsonify({'error': f'Prediction failed: {str(e)}'}), 500
 
 @predict_bp.route('/train/<ticker>', methods=['POST'])
+@secure_api_endpoint(
+    schema=ModelTrainingRequest,
+    require_auth=True,
+    rate_limit="5 per hour"  # Very restrictive for resource-intensive training
+)
 def train_models(ticker: str):
     """Train ML models for a specific ticker"""
     try:
-        ticker = ticker.upper().strip()
-        data = request.get_json() or {}
-        
-        models_to_train = data.get('models', ['xgboost', 'lstm'])
-        period = data.get('period', '2y')
+        # Use validated data from security decorator
+        validated_data = request.validated_json
+        ticker = validated_data['ticker']
+        models_to_train = validated_data['models']
+        period = validated_data['period']
         
         training_results = {}
         
@@ -448,6 +492,44 @@ def train_models(ticker: str):
         logger.error(f"Training API error for {ticker}: {str(e)}")
         return jsonify({'error': f'Training failed: {str(e)}'}), 500
 
+@predict_bp.route('/cache/status', methods=['GET'])
+@secure_api_endpoint(rate_limit="10 per minute")
+def get_cache_status():
+    """Get comprehensive cache status (ML models + Yahoo Finance)"""
+    try:
+        # ML model cache stats
+        model_cache = get_model_cache()
+        model_stats = model_cache.get_cache_stats()
+        
+        from utils.model_cache import get_cache_health
+        model_health = get_cache_health()
+        
+        # Yahoo Finance cache stats
+        yf_cache = get_yahoo_finance_cache()
+        yf_stats = yf_cache.get_stats()
+        
+        from utils.yahoo_finance_cache import get_cache_health as get_yf_health
+        yf_health = get_yf_health()
+        
+        return jsonify({
+            'model_cache': {
+                'stats': model_stats,
+                'health': model_health
+            },
+            'yahoo_finance_cache': {
+                'stats': yf_stats,
+                'health': yf_health
+            },
+            'overall_health': 'healthy' if (
+                model_health['status'] == 'healthy' and 
+                yf_health['status'] == 'healthy'
+            ) else 'warning',
+            'timestamp': datetime.now().isoformat()
+        })
+    except Exception as e:
+        logger.error(f"Cache status error: {str(e)}")
+        return jsonify({'error': f'Cache status failed: {str(e)}'}), 500
+
 @predict_bp.route('/models/available', methods=['GET'])
 def get_available_models():
     """Get list of available prediction models and their status"""
@@ -495,6 +577,11 @@ def get_available_models():
     })
 
 @predict_bp.route('/batch-predict', methods=['POST'])
+@secure_api_endpoint(
+    schema=BatchPredictionRequest,
+    require_auth=True,
+    rate_limit="10 per hour"  # Restrictive for batch operations
+)
 def batch_predict():
     """Predict multiple stocks in parallel"""
     try:
@@ -563,6 +650,37 @@ def predict_single_stock(ticker: str, days_ahead: int, models: str) -> Dict:
         
     except Exception as e:
         return {'error': str(e)}
+
+def _interpret_sentiment_score(score: float, confidence: float) -> Dict[str, str]:
+    """Interpret sentiment score for predictions"""
+    if confidence < 0.3:
+        confidence_level = 'low'
+    elif confidence < 0.7:
+        confidence_level = 'moderate' 
+    else:
+        confidence_level = 'high'
+    
+    if score > 0.3:
+        sentiment_label = 'bullish'
+        impact = 'positive'
+    elif score > 0.1:
+        sentiment_label = 'slightly_positive'
+        impact = 'mildly_positive'
+    elif score > -0.1:
+        sentiment_label = 'neutral'
+        impact = 'neutral'
+    elif score > -0.3:
+        sentiment_label = 'slightly_negative'
+        impact = 'mildly_negative'
+    else:
+        sentiment_label = 'bearish'
+        impact = 'negative'
+    
+    return {
+        'label': sentiment_label,
+        'impact': impact,
+        'confidence_level': confidence_level
+    }
 
 if __name__ == "__main__":
     # Test the prediction API

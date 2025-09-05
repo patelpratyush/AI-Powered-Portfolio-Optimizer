@@ -82,11 +82,11 @@ const Results = () => {
   : [];
 
   const forecastData = result.forecast_growth
-  ? Object.entries(result.forecast_growth).map(([date, forecast]: [string, any]) => ({
+  ? Object.entries(result.forecast_growth).map(([date, forecast]: [string, { value?: number; lower?: number; upper?: number } | number]) => ({
       date,
-      value: forecast.value || forecast,
-      lower: forecast.lower,
-      upper: forecast.upper
+      value: typeof forecast === 'object' ? forecast.value : forecast,
+      lower: typeof forecast === 'object' ? forecast.lower : undefined,
+      upper: typeof forecast === 'object' ? forecast.upper : undefined
     }))
   : [];
   

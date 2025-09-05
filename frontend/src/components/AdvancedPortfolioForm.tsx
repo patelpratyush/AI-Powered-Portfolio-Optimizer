@@ -138,9 +138,9 @@ const AdvancedPortfolioForm = () => {
         title: "Portfolio Optimized",
         description: "Your advanced portfolio has been successfully optimized!",
       });
-    } catch (err: any) {
+    } catch (err: unknown) {
       console.error("Advanced optimization failed:", err);
-      const errorMsg = err.response?.data?.details || "Advanced optimization failed";
+      const errorMsg = (err as { response?: { data?: { details?: string } } }).response?.data?.details || "Advanced optimization failed";
       toast({
         title: "Optimization Failed",
         description: errorMsg,

@@ -1,0 +1,119 @@
+{
+  "name": "AI-Powered Portfolio Optimizer",
+  "short_name": "Portfolio AI",
+  "description": "Professional-grade investment platform with AI-powered portfolio optimization and market predictions",
+  "start_url": "/",
+  "display": "standalone",
+  "background_color": "#ffffff",
+  "theme_color": "#2563eb",
+  "orientation": "portrait-primary",
+  "categories": ["finance", "business", "productivity"],
+  "lang": "en-US",
+  "scope": "/",
+  "icons": [
+    {
+      "src": "/icons/icon-72x72.png",
+      "sizes": "72x72",
+      "type": "image/png",
+      "purpose": "maskable any"
+    },
+    {
+      "src": "/icons/icon-96x96.png",
+      "sizes": "96x96",
+      "type": "image/png",
+      "purpose": "maskable any"
+    },
+    {
+      "src": "/icons/icon-128x128.png",
+      "sizes": "128x128",
+      "type": "image/png",
+      "purpose": "maskable any"
+    },
+    {
+      "src": "/icons/icon-144x144.png",
+      "sizes": "144x144",
+      "type": "image/png",
+      "purpose": "maskable any"
+    },
+    {
+      "src": "/icons/icon-152x152.png",
+      "sizes": "152x152",
+      "type": "image/png",
+      "purpose": "maskable any"
+    },
+    {
+      "src": "/icons/icon-192x192.png",
+      "sizes": "192x192",
+      "type": "image/png",
+      "purpose": "maskable any"
+    },
+    {
+      "src": "/icons/icon-384x384.png",
+      "sizes": "384x384",
+      "type": "image/png",
+      "purpose": "maskable any"
+    },
+    {
+      "src": "/icons/icon-512x512.png",
+      "sizes": "512x512",
+      "type": "image/png",
+      "purpose": "maskable any"
+    }
+  ],
+  "shortcuts": [
+    {
+      "name": "AI Analysis",
+      "short_name": "AI Hub",
+      "description": "Access AI-powered stock predictions and analysis",
+      "url": "/ai-hub",
+      "icons": [{ "src": "/icons/shortcut-ai.png", "sizes": "96x96" }]
+    },
+    {
+      "name": "Portfolio Optimizer",
+      "short_name": "Optimize",
+      "description": "Optimize your investment portfolio",
+      "url": "/advanced",
+      "icons": [{ "src": "/icons/shortcut-optimize.png", "sizes": "96x96" }]
+    },
+    {
+      "name": "Quick Analysis",
+      "short_name": "Analyze",
+      "description": "Analyze current portfolio performance",
+      "url": "/analyze",
+      "icons": [{ "src": "/icons/shortcut-analyze.png", "sizes": "96x96" }]
+    }
+  ],
+  "screenshots": [
+    {
+      "src": "/screenshots/desktop-home.png",
+      "sizes": "1280x720",
+      "type": "image/png",
+      "form_factor": "wide",
+      "label": "Portfolio optimizer homepage on desktop"
+    },
+    {
+      "src": "/screenshots/mobile-ai-hub.png",
+      "sizes": "320x640",
+      "type": "image/png",
+      "form_factor": "narrow",
+      "label": "AI analysis hub on mobile"
+    }
+  ],
+  "related_applications": [],
+  "prefer_related_applications": false,
+  "share_target": {
+    "action": "/share-portfolio",
+    "method": "GET",
+    "params": {
+      "title": "title",
+      "text": "text",
+      "url": "url"
+    }
+  },
+  "protocol_handlers": [
+    {
+      "protocol": "web+portfolio",
+      "url": "/import?data=%s"
+    }
+  ]
+}

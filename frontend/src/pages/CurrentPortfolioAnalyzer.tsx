@@ -16,7 +16,7 @@ export default function CurrentPortfolioAnalyzer() {
   const [tickers, setTickers] = useState(["AAPL", "GOOGL"]);
   const [shares, setShares] = useState([5, 3]);
   const [dateRange, setDateRange] = useState({ start: "2023-01-01", end: "2024-01-01" });
-  const [result, setResult] = useState<any>(null);
+  const [result, setResult] = useState<Record<string, unknown> | null>(null);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
@@ -31,9 +31,10 @@ export default function CurrentPortfolioAnalyzer() {
         end: dateRange.end,
       });
       setResult(res.data);
-    } catch (err: any) {
+    } catch (err: unknown) {
       console.error(err);
-      setError(err.response?.data?.message || err.message || "Failed to analyze portfolio");
+      const error = err as { response?: { data?: { message?: string } }; message?: string };
+      setError(error.response?.data?.message || error.message || "Failed to analyze portfolio");
     } finally {
       setLoading(false);
     }
@@ -131,11 +132,11 @@ export default function CurrentPortfolioAnalyzer() {
                 <div className="text-md font-medium mb-2">📈 Holdings Breakdown (Pie)</div>
                 <Pie
                   data={{
-                    labels: result.details.map((d: any) => d.ticker),
+                    labels: (result.details as Array<{ ticker: string }>).map((d) => d.ticker),
                     datasets: [
                       {
                         label: "Value ($)",
-                        data: result.details.map((d: any) => d.value),
+                        data: (result.details as Array<{ value: number }>).map((d) => d.value),
                         backgroundColor: ["#60a5fa", "#818cf8", "#c084fc", "#f472b6", "#facc15"],
                       },
                     ],
@@ -153,7 +154,7 @@ export default function CurrentPortfolioAnalyzer() {
                         data: [{ x: result.volatility, y: result.sharpe_ratio, r: 10 }],
                         backgroundColor: "#22d3ee",
                       },
-                      ...Object.entries(result.comparison || {}).map(([key, data]: any) => ({
+                      ...Object.entries(result.comparison || {}).map(([key, data]: [string, { volatility: number; sharpe_ratio: number }]) => ({
                         label: key,
                         data: [{ x: data.volatility, y: data.sharpe_ratio, r: 10 }],
                         backgroundColor: key === "max_sharpe" ? "#4ade80" : "#fbbf24",

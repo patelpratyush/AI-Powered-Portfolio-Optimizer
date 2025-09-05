@@ -35,12 +35,41 @@ interface PortfolioHolding {
   gainLossPercent?: number;
 }
 
+interface AnalysisResult {
+  error?: string;
+  predictions?: {
+    ensemble?: {
+      trading_signal?: {
+        action: string;
+        target_price?: number;
+        confidence?: number;
+      };
+      summary?: {
+        avg_predicted_return?: number;
+      };
+    };
+    prophet?: {
+      trading_signal?: {
+        action: string;
+        target_price?: number;
+        confidence?: number;
+      };
+      summary?: {
+        avg_predicted_return?: number;
+      };
+    };
+  };
+  stock_info?: {
+    current_price?: number;
+  };
+}
+
 const AIHub: React.FC = () => {
   const { isDarkMode } = useDarkMode();
   const [activeTab, setActiveTab] = useState('forecast');
   const [selectedTicker, setSelectedTicker] = useState('AAPL');
   const [importedPortfolio, setImportedPortfolio] = useState<PortfolioHolding[]>([]);
-  const [portfolioAnalysisResults, setPortfolioAnalysisResults] = useState<Record<string, any>>({});
+  const [portfolioAnalysisResults, setPortfolioAnalysisResults] = useState<Record<string, AnalysisResult>>({});
   const [isAnalyzing, setIsAnalyzing] = useState(false);
 
   const handlePortfolioImport = (holdings: PortfolioHolding[]) => {
@@ -474,7 +503,7 @@ const AIHub: React.FC = () => {
                   </CardHeader>
                   <CardContent>
                     <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
-                      {Object.entries(portfolioAnalysisResults).map(([ticker, result]: [string, any]) => {
+                      {Object.entries(portfolioAnalysisResults).map(([ticker, result]: [string, AnalysisResult]) => {
                         if (result.error) {
                           return (
                             <Card key={ticker} className="border-red-200 bg-red-50 dark:bg-red-900/20">

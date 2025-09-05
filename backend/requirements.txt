@@ -1,39 +1,86 @@
 # Core dependencies
-flask
-flask-cors
-yfinance
-numpy
-pandas
-scipy
-prophet
-requests
+flask>=2.3.0
+flask-cors>=4.0.0
+python-dotenv>=1.0.0
+flask-limiter>=3.5.0
+flask-socketio>=5.3.0
+python-socketio>=5.8.0
+
+# Security dependencies
+flask-talisman>=1.1.0
+flask-jwt-extended>=4.5.0
+werkzeug>=2.3.0
+pydantic>=2.0.0
+
+# Data & Finance
+yfinance>=0.2.20
+numpy>=1.24.0
+pandas>=2.0.0
+scipy>=1.11.0
+prophet>=1.1.4
+requests>=2.31.0
 
 # Machine Learning & Optimization  
-scikit-learn
-cvxpy
-xgboost
-tensorflow
-keras
-ta  # Technical Analysis
-joblib
+scikit-learn>=1.3.0
+cvxpy>=1.4.0
+xgboost>=1.7.6
+tensorflow>=2.13.0
+keras>=2.13.0
+ta>=0.10.2
+joblib>=1.3.0
 
-# Financial libraries (reliable ones)
-pyportfolioopt
+# Financial libraries
+pyportfolioopt>=1.5.5
 
 # Data visualization
-plotly
+plotly>=5.15.0
 
-# Text processing (optional for future features)
-nltk
-textblob
-feedparser
-beautifulsoup4
+# Validation & Serialization
+pydantic>=2.3.0
+marshmallow>=3.20.0
 
-# Web scraping (optional)
-selenium
+# Database & Caching
+sqlalchemy>=2.0.0
+flask-sqlalchemy>=3.0.0
+redis>=4.6.0
+flask-caching>=2.1.0
 
-# API integrations (optional)
-alpha_vantage
+# Authentication & Security
+flask-jwt-extended>=4.5.0
+passlib>=1.7.4
+bcrypt>=4.0.0
+werkzeug>=2.3.0
+
+# Email & Notifications
+smtplib
+email-validator>=2.0.0
+
+# Scheduling (for background tasks)
+apscheduler>=3.10.0
+
+# Additional utilities
+python-dateutil>=2.8.0
+
+# Testing
+pytest>=7.4.0
+pytest-flask>=1.2.0
+pytest-cov>=4.1.0
+
+# Development & Monitoring
+flask-migrate>=4.0.0
+gunicorn>=21.2.0
+
+# Text processing and sentiment analysis
+nltk>=3.8.0
+textblob>=0.17.0
+feedparser>=6.0.0
+beautifulsoup4>=4.12.0
+transformers>=4.35.2
+torch>=2.1.1
+tweepy>=4.14.0
+
+# API integrations
+alpha_vantage>=2.3.0
 
 # Additional math libraries
-statsmodels
+statsmodels>=0.14.0

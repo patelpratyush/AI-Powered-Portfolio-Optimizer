@@ -100,7 +100,7 @@ const PortfolioForm = () => {
     }
 
     setIsSubmitting(true);
-    const payload: any = {
+    const payload: Record<string, unknown> = {
       tickers,
       start: dateRange.start,
       end: dateRange.end,

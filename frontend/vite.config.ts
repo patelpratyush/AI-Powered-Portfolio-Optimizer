@@ -26,4 +26,40 @@ export default defineConfig(({ mode }) => ({
       "@": path.resolve(__dirname, "./src"),
     },
   },
+  build: {
+    // Optimize chunk splitting for better caching
+    rollupOptions: {
+      output: {
+        manualChunks: {
+          // Vendor chunk for large dependencies
+          vendor: ['react', 'react-dom'],
+          // UI components chunk
+          ui: ['@radix-ui/react-accordion', '@radix-ui/react-alert-dialog', 
+               '@radix-ui/react-avatar', '@radix-ui/react-button'],
+          // Charts and visualization
+          charts: ['recharts', 'react-chartjs-2'],
+          // Utilities
+          utils: ['date-fns', 'clsx', 'class-variance-authority'],
+          // React Query and data fetching
+          data: ['@tanstack/react-query', 'axios']
+        }
+      }
+    },
+    // Enable source maps for better debugging
+    sourcemap: mode === 'development',
+    // Optimize for production
+    minify: mode === 'production' ? 'esbuild' : false,
+    // Set chunk size warning limit
+    chunkSizeWarningLimit: 1000
+  },
+  // Performance optimizations
+  optimizeDeps: {
+    include: [
+      'react', 'react-dom', 'react-router-dom',
+      '@tanstack/react-query',
+      'recharts',
+      'date-fns',
+      'clsx'
+    ]
+  }
 }));

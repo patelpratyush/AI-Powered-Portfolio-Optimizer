@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useCallback } from 'react';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
@@ -83,9 +83,9 @@ export const ModelTrainingCenter: React.FC = () => {
     // Poll for training job updates every 5 seconds
     const interval = setInterval(updateTrainingJobs, 5000);
     return () => clearInterval(interval);
-  }, []);
+  }, [fetchModelStatuses]);
 
-  const fetchModelStatuses = async () => {
+  const fetchModelStatuses = useCallback(async () => {
     try {
       // This would be a real API call to check model availability
       const mockStatuses: ModelStatus[] = popularTickers.map(ticker => ({
@@ -101,7 +101,7 @@ export const ModelTrainingCenter: React.FC = () => {
     } catch (error) {
       console.error('Failed to fetch model statuses:', error);
     }
-  };
+  }, [popularTickers]);
 
   const updateTrainingJobs = () => {
     setTrainingJobs(jobs => 
@@ -307,7 +307,7 @@ export const ModelTrainingCenter: React.FC = () => {
             )
           );
 
-        } catch (error: any) {
+        } catch (error: unknown) {
           // Update job with error
           setTrainingJobs(prev => 
             prev.map(job => 
@@ -347,43 +347,67 @@ export const ModelTrainingCenter: React.FC = () => {
   };
 
   return (
-    <div className="space-y-6">
+    <div className="space-y-8">
       {/* Header */}
-      <Card className="bg-gradient-to-r from-purple-50 to-indigo-50 dark:from-purple-900/20 dark:to-indigo-900/20 border-purple-200 dark:border-purple-700">
-        <CardHeader>
-          <CardTitle className="flex items-center space-x-2">
-            <Brain className="w-6 h-6 text-purple-600" />
-            <span>AI Model Training Center</span>
+      <Card className="border-0 shadow-sm bg-white overflow-hidden">
+        <CardHeader className="pb-8 bg-gradient-to-r from-purple-50 to-indigo-50">
+          <CardTitle className="flex items-center gap-3 text-2xl font-bold text-gray-900">
+            <div className="p-3 bg-purple-100 rounded-xl">
+              <Brain className="w-6 h-6 text-purple-600" />
+            </div>
+            AI Model Training Center
           </CardTitle>
-          <CardDescription>
-            Train XGBoost and LSTM models for accurate stock predictions
+          <CardDescription className="text-gray-600 mt-3 text-base leading-relaxed">
+            Train XGBoost and LSTM models for accurate stock predictions using advanced machine learning algorithms
           </CardDescription>
         </CardHeader>
       </Card>
 
       <Tabs value={activeTab} onValueChange={setActiveTab} className="w-full">
-        <TabsList className="grid w-full grid-cols-4">
-          <TabsTrigger value="train">Single Training</TabsTrigger>
-          <TabsTrigger value="batch">Batch Training</TabsTrigger>
-          <TabsTrigger value="status">Model Status</TabsTrigger>
-          <TabsTrigger value="jobs">Training Jobs</TabsTrigger>
+        <TabsList className="grid w-full grid-cols-4 bg-gray-100 p-1 rounded-xl h-14">
+          <TabsTrigger 
+            value="train"
+            className="rounded-lg font-medium data-[state=active]:bg-white data-[state=active]:shadow-sm py-3"
+          >
+            Single Training
+          </TabsTrigger>
+          <TabsTrigger 
+            value="batch"
+            className="rounded-lg font-medium data-[state=active]:bg-white data-[state=active]:shadow-sm py-3"
+          >
+            Batch Training
+          </TabsTrigger>
+          <TabsTrigger 
+            value="status"
+            className="rounded-lg font-medium data-[state=active]:bg-white data-[state=active]:shadow-sm py-3"
+          >
+            Model Status
+          </TabsTrigger>
+          <TabsTrigger 
+            value="jobs"
+            className="rounded-lg font-medium data-[state=active]:bg-white data-[state=active]:shadow-sm py-3"
+          >
+            Training Jobs
+          </TabsTrigger>
         </TabsList>
 
         {/* Training Tab */}
-        <TabsContent value="train" className="space-y-6">
-          <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+        <TabsContent value="train" className="space-y-8 mt-8">
+          <div className="grid grid-cols-1 lg:grid-cols-2 gap-8">
             {/* Manual Training */}
-            <Card>
-              <CardHeader>
-                <CardTitle className="flex items-center space-x-2">
-                  <Play className="w-5 h-5" />
-                  <span>Train Individual Stock</span>
+            <Card className="border-0 shadow-sm bg-white overflow-hidden">
+              <CardHeader className="pb-6 bg-gradient-to-r from-blue-50 to-cyan-50">
+                <CardTitle className="flex items-center gap-3 text-lg font-semibold text-gray-900">
+                  <div className="p-2 bg-blue-100 rounded-lg">
+                    <Play className="w-5 h-5 text-blue-600" />
+                  </div>
+                  Train Individual Stock
                 </CardTitle>
-                <CardDescription>
+                <CardDescription className="text-gray-600 mt-2">
                   Train models for a specific ticker symbol
                 </CardDescription>
               </CardHeader>
-              <CardContent className="space-y-4">
+              <CardContent className="p-8 space-y-6">
                 <div>
                   <Label htmlFor="ticker">Stock Ticker</Label>
                   <div className="mt-1">
@@ -451,42 +475,50 @@ export const ModelTrainingCenter: React.FC = () => {
                 <Button 
                   onClick={startTraining}
                   disabled={!selectedTicker || selectedModels.length === 0 || isTraining}
-                  className="w-full"
+                  className="w-full py-3 rounded-xl bg-blue-600 hover:bg-blue-700 text-white font-medium"
+                  size="lg"
                 >
                   {isTraining ? (
                     <>
-                      <Clock className="w-4 h-4 mr-2 animate-spin" />
-                      Training...
+                      <Clock className="w-5 h-5 mr-2 animate-spin" />
+                      Training in Progress...
                     </>
                   ) : (
                     <>
-                      <Play className="w-4 h-4 mr-2" />
+                      <Play className="w-5 h-5 mr-2" />
                       Start Training
                     </>
                   )}
                 </Button>
 
-                <Alert>
-                  <AlertCircle className="h-4 w-4" />
-                  <AlertDescription>
-                    <strong>Training Time:</strong> XGBoost (~2-5 min), LSTM (~10-20 min)
-                  </AlertDescription>
-                </Alert>
+                <div className="p-4 bg-blue-50 rounded-xl border border-blue-200">
+                  <div className="flex items-start gap-3">
+                    <div className="p-1 bg-blue-100 rounded-lg flex-shrink-0">
+                      <AlertCircle className="h-4 w-4 text-blue-600" />
+                    </div>
+                    <div className="text-sm text-blue-800 leading-relaxed">
+                      <p className="font-medium mb-1">Training Time Estimates</p>
+                      <p>XGBoost: 2-5 minutes • LSTM: 10-20 minutes</p>
+                    </div>
+                  </div>
+                </div>
               </CardContent>
             </Card>
 
             {/* Batch Training */}
-            <Card>
-              <CardHeader>
-                <CardTitle className="flex items-center space-x-2">
-                  <Database className="w-5 h-5" />
-                  <span>Batch Training</span>
+            <Card className="border-0 shadow-sm bg-white overflow-hidden">
+              <CardHeader className="pb-6 bg-gradient-to-r from-green-50 to-emerald-50">
+                <CardTitle className="flex items-center gap-3 text-lg font-semibold text-gray-900">
+                  <div className="p-2 bg-green-100 rounded-lg">
+                    <Database className="w-5 h-5 text-green-600" />
+                  </div>
+                  Quick Batch Training
                 </CardTitle>
-                <CardDescription>
+                <CardDescription className="text-gray-600 mt-2">
                   Train models for popular stocks automatically
                 </CardDescription>
               </CardHeader>
-              <CardContent className="space-y-4">
+              <CardContent className="p-8 space-y-6">
                 <div className="text-sm text-gray-600 dark:text-gray-400">
                   <p>Popular tickers that need training:</p>
                   <div className="mt-2 flex flex-wrap gap-2">
@@ -504,36 +536,43 @@ export const ModelTrainingCenter: React.FC = () => {
                 <Button 
                   onClick={trainPopularStocks}
                   variant="outline"
-                  className="w-full"
+                  className="w-full py-3 rounded-xl border-2 border-green-200 text-green-700 hover:bg-green-50 font-medium"
+                  size="lg"
                 >
-                  <TrendingUp className="w-4 h-4 mr-2" />
+                  <TrendingUp className="w-5 h-5 mr-2" />
                   Train Popular Stocks
                 </Button>
 
-                <Alert>
-                  <AlertCircle className="h-4 w-4" />
-                  <AlertDescription>
-                    This will train missing models for the top 5 untrained popular stocks.
-                  </AlertDescription>
-                </Alert>
+                <div className="p-4 bg-green-50 rounded-xl border border-green-200">
+                  <div className="flex items-start gap-3">
+                    <div className="p-1 bg-green-100 rounded-lg flex-shrink-0">
+                      <AlertCircle className="h-4 w-4 text-green-600" />
+                    </div>
+                    <div className="text-sm text-green-800 leading-relaxed">
+                      This will automatically train missing models for the top 5 untrained popular stocks.
+                    </div>
+                  </div>
+                </div>
               </CardContent>
             </Card>
           </div>
         </TabsContent>
 
         {/* Batch Training Tab */}
-        <TabsContent value="batch" className="space-y-6">
-          <Card>
-            <CardHeader>
-              <CardTitle className="flex items-center space-x-2">
-                <Database className="w-5 h-5 text-purple-600" />
-                <span>Batch Model Training</span>
+        <TabsContent value="batch" className="space-y-8 mt-8">
+          <Card className="border-0 shadow-sm bg-white overflow-hidden">
+            <CardHeader className="pb-8 bg-gradient-to-r from-purple-50 to-violet-50">
+              <CardTitle className="flex items-center gap-3 text-xl font-semibold text-gray-900">
+                <div className="p-2 bg-purple-100 rounded-lg">
+                  <Database className="w-5 h-5 text-purple-600" />
+                </div>
+                Custom Batch Training
               </CardTitle>
-              <CardDescription>
+              <CardDescription className="text-gray-600 mt-2 text-base">
                 Train models for multiple stocks at once with custom settings
               </CardDescription>
             </CardHeader>
-            <CardContent className="space-y-6">
+            <CardContent className="p-8 space-y-8">
               {/* Stock Selection */}
               <div>
                 <Label className="text-sm font-medium mb-2 block">Select Stocks for Batch Training</Label>

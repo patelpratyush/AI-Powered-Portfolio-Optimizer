@@ -1,0 +1,116 @@
+# Prometheus alerting rules for Portfolio Optimizer
+
+groups:
+  - name: portfolio_optimizer_alerts
+    rules:
+      # High error rate
+      - alert: HighErrorRate
+        expr: rate(portfolio_requests_total{status=~"5.."}[5m]) > 0.1
+        for: 2m
+        labels:
+          severity: warning
+        annotations:
+          summary: "High error rate detected"
+          description: "Error rate is {{ $value | humanizePercentage }} for the last 5 minutes"
+
+      # High response time
+      - alert: HighResponseTime
+        expr: histogram_quantile(0.95, rate(portfolio_request_duration_seconds_bucket[5m])) > 2
+        for: 5m
+        labels:
+          severity: warning
+        annotations:
+          summary: "High response time detected"
+          description: "95th percentile response time is {{ $value }}s"
+
+      # High memory usage
+      - alert: HighMemoryUsage
+        expr: (node_memory_MemTotal_bytes - node_memory_MemAvailable_bytes) / node_memory_MemTotal_bytes > 0.85
+        for: 5m
+        labels:
+          severity: warning
+        annotations:
+          summary: "High memory usage"
+          description: "Memory usage is {{ $value | humanizePercentage }}"
+
+      # High CPU usage
+      - alert: HighCPUUsage
+        expr: 100 - (avg by(instance) (rate(node_cpu_seconds_total{mode="idle"}[5m])) * 100) > 80
+        for: 10m
+        labels:
+          severity: warning
+        annotations:
+          summary: "High CPU usage"
+          description: "CPU usage is {{ $value }}%"
+
+      # Database connection issues
+      - alert: DatabaseConnectionFailure
+        expr: up{job="postgres"} == 0
+        for: 1m
+        labels:
+          severity: critical
+        annotations:
+          summary: "Database connection failure"
+          description: "PostgreSQL database is not responding"
+
+      # Redis connection issues
+      - alert: RedisConnectionFailure
+        expr: up{job="redis"} == 0
+        for: 1m
+        labels:
+          severity: warning
+        annotations:
+          summary: "Redis connection failure"
+          description: "Redis cache is not responding"
+
+      # Application instance down
+      - alert: ApplicationDown
+        expr: up{job="portfolio-backend"} == 0
+        for: 1m
+        labels:
+          severity: critical
+        annotations:
+          summary: "Application instance down"
+          description: "Portfolio Optimizer backend is not responding"
+
+      # Disk space usage
+      - alert: HighDiskUsage
+        expr: (node_filesystem_size_bytes{fstype!="tmpfs"} - node_filesystem_free_bytes{fstype!="tmpfs"}) / node_filesystem_size_bytes{fstype!="tmpfs"} > 0.9
+        for: 5m
+        labels:
+          severity: warning
+        annotations:
+          summary: "High disk usage"
+          description: "Disk usage is {{ $value | humanizePercentage }} on {{ $labels.mountpoint }}"
+
+  - name: portfolio_business_alerts
+    rules:
+      # Model prediction failures
+      - alert: ModelPredictionFailures
+        expr: rate(portfolio_model_predictions_failed_total[10m]) > 0.05
+        for: 5m
+        labels:
+          severity: warning
+        annotations:
+          summary: "High model prediction failure rate"
+          description: "Model prediction failure rate is {{ $value }} per second"
+
+      # Portfolio optimization failures
+      - alert: OptimizationFailures
+        expr: rate(portfolio_optimizations_failed_total[10m]) > 0.02
+        for: 5m
+        labels:
+          severity: warning
+        annotations:
+          summary: "Portfolio optimization failures"
+          description: "Portfolio optimization failure rate is {{ $value }} per second"
+
+      # Authentication failures
+      - alert: HighAuthFailureRate
+        expr: rate(portfolio_auth_failures_total[5m]) > 0.1
+        for: 2m
+        labels:
+          severity: warning
+        annotations:
+          summary: "High authentication failure rate"
+          description: "Authentication failure rate is {{ $value }} per second - possible brute force attack"

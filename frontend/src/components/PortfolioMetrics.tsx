@@ -10,7 +10,9 @@ const PortfolioMetrics = () => {
       change: "+2.1%",
       icon: TrendingUp,
       color: "text-green-600",
-      bgColor: "bg-green-50"
+      bgColor: "bg-green-100",
+      gradientBg: "bg-gradient-to-br from-green-50 to-emerald-50",
+      borderColor: "border-green-200"
     },
     {
       title: "Sharpe Ratio",
@@ -18,7 +20,9 @@ const PortfolioMetrics = () => {
       change: "+0.23",
       icon: BarChart,
       color: "text-blue-600",
-      bgColor: "bg-blue-50"
+      bgColor: "bg-blue-100",
+      gradientBg: "bg-gradient-to-br from-blue-50 to-indigo-50",
+      borderColor: "border-blue-200"
     },
     {
       title: "Risk (Volatility)",
@@ -26,7 +30,9 @@ const PortfolioMetrics = () => {
       change: "-1.2%",
       icon: Shield,
       color: "text-orange-600",
-      bgColor: "bg-orange-50"
+      bgColor: "bg-orange-100",
+      gradientBg: "bg-gradient-to-br from-orange-50 to-amber-50",
+      borderColor: "border-orange-200"
     },
     {
       title: "Portfolio Value",
@@ -34,41 +40,49 @@ const PortfolioMetrics = () => {
       change: "+$8,234",
       icon: DollarSign,
       color: "text-purple-600",
-      bgColor: "bg-purple-50"
+      bgColor: "bg-purple-100",
+      gradientBg: "bg-gradient-to-br from-purple-50 to-violet-50",
+      borderColor: "border-purple-200"
     }
   ];
 
   return (
-    <Card className="bg-white/70 backdrop-blur-sm border-slate-200 shadow-lg">
-      <CardHeader>
-        <CardTitle className="flex items-center space-x-2">
-          <BarChart className="w-5 h-5 text-blue-600" />
-          <span>Portfolio Metrics</span>
+    <Card className="border-0 shadow-sm bg-white overflow-hidden">
+      <CardHeader className="pb-8 bg-gradient-to-r from-slate-50 to-gray-50">
+        <CardTitle className="flex items-center gap-3 text-xl font-semibold text-gray-900">
+          <div className="p-2 bg-slate-100 rounded-lg">
+            <BarChart className="w-5 h-5 text-slate-600" />
+          </div>
+          Portfolio Metrics
         </CardTitle>
-        <CardDescription>
+        <CardDescription className="text-gray-600 mt-2 text-base">
           Key performance indicators for your optimized portfolio
         </CardDescription>
       </CardHeader>
-      <CardContent>
-        <div className="grid grid-cols-2 gap-4">
+      <CardContent className="p-8">
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
           {metrics.map((metric) => (
             <div 
               key={metric.title}
-              className="p-4 rounded-lg border border-slate-100 hover:shadow-md transition-shadow"
+              className={`p-6 rounded-2xl border ${metric.borderColor} ${metric.gradientBg} hover:shadow-md transition-all duration-200 hover:scale-[1.02]`}
             >
-              <div className="flex items-center justify-between mb-2">
-                <div className={`p-2 rounded-lg ${metric.bgColor}`}>
-                  <metric.icon className={`w-4 h-4 ${metric.color}`} />
+              <div className="flex items-center justify-between mb-4">
+                <div className={`p-3 rounded-xl ${metric.bgColor}`}>
+                  <metric.icon className={`w-5 h-5 ${metric.color}`} />
                 </div>
-                <span className={`text-xs font-medium ${metric.color}`}>
-                  {metric.change}
-                </span>
+                <div className="text-right">
+                  <span className={`text-sm font-semibold px-3 py-1 rounded-full ${metric.color} ${metric.bgColor}/50`}>
+                    {metric.change}
+                  </span>
+                </div>
               </div>
-              <div className="text-2xl font-bold text-slate-900 mb-1">
-                {metric.value}
-              </div>
-              <div className="text-sm text-slate-600">
-                {metric.title}
+              <div className="space-y-2">
+                <div className="text-3xl font-bold text-gray-900">
+                  {metric.value}
+                </div>
+                <div className="text-sm font-medium text-gray-600">
+                  {metric.title}
+                </div>
               </div>
             </div>
           ))}

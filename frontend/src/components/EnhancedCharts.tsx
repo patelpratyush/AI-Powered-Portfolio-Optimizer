@@ -46,10 +46,14 @@ const colorPalettes = {
 
 interface EnhancedTooltipProps {
   active?: boolean;
-  payload?: any[];
-  label?: any;
-  formatter?: (value: any, name: string) => [string, string];
-  labelFormatter?: (label: any) => string;
+  payload?: Array<{
+    value: string | number;
+    name: string;
+    color: string;
+  }>;
+  label?: string | number;
+  formatter?: (value: string | number, name: string) => [string, string];
+  labelFormatter?: (label: string | number) => string;
   contentStyle?: React.CSSProperties;
 }
 
@@ -258,7 +262,15 @@ export const EnhancedAllocationChart: React.FC<AllocationChartProps> = ({ data, 
   
   const renderCustomizedLabel = ({
     cx, cy, midAngle, innerRadius, outerRadius, percent, ticker
-  }: any) => {
+  }: {
+    cx: number;
+    cy: number;
+    midAngle: number;
+    innerRadius: number;
+    outerRadius: number;
+    percent: number;
+    ticker: string;
+  }) => {
     const radius = innerRadius + (outerRadius - innerRadius) * 0.5;
     const x = cx + radius * Math.cos(-midAngle * RADIAN);
     const y = cy + radius * Math.sin(-midAngle * RADIAN);

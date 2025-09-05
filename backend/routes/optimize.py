@@ -10,6 +10,10 @@ from datetime import datetime, timedelta
 from prophet import Prophet
 warnings.filterwarnings('ignore')
 
+# Import security utilities
+from utils.security import secure_api_endpoint, sanitize_ticker
+from schemas.validation import OptimizationRequest
+
 optimize_bp = Blueprint('optimize', __name__)
 
 # Stock ticker validation
@@ -255,6 +259,10 @@ class PortfolioOptimizer:
         return efficient_portfolios
 
 @optimize_bp.route("/optimize", methods=["POST"])
+@secure_api_endpoint(
+    schema=OptimizationRequest,
+    rate_limit="20 per minute"
+)
 def optimize_portfolio():
     try:
         data = request.get_json()
